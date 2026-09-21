@@ -39,7 +39,7 @@ function renderEnemyDetails() {
 }
 const escape = (value) => String(value).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function api(path, body) {
-  try { return await GameApi.request(path, body); }
+  try { return await GameApi.request(path, body, arguments[2]); }
   catch (error) { if (error.status === 401 && signedInUser) showLoggedOut(); throw error; }
 }
 async function run(task) {
@@ -305,6 +305,7 @@ async function loadAccount(user) {
   villageLive.watch(user);
   $('password').value = ''; $('login-panel').hidden = true; $('game').hidden = false;
   $('account-name').textContent = user.username;
+  renderAccount(user);
   $('roster').replaceChildren();
   villageHeroes=await api('/adventurers');villageHeroes.forEach(addHero);
   characterWorkspace.update(villageHeroes);
@@ -326,6 +327,13 @@ async function loadAccount(user) {
     render(await api('/encounters/' + encodeURIComponent(saved)),!new URLSearchParams(location.search).has('encounter'));
   }
 }
+function renderAccount(user) {
+  $('account-identity').textContent = `${user.username} · ${user.account_type || 'player'} account`;
+  const linked = Boolean(user.discord_linked);
+  $('discord-link-status').textContent = linked ? 'Your Discord account is linked.' : 'No Discord account is linked.';
+  $('discord-link').hidden = linked;
+  $('discord-unlink').hidden = !linked;
+}
 $('login-form').addEventListener('submit', event => {
   event.preventDefault();
   const mode = event.submitter?.value || 'login';
@@ -336,6 +344,16 @@ $('login-form').addEventListener('submit', event => {
 });
 $('logout').onclick = () => run(async () => { await api('/auth/logout', {}); showLoggedOut(); });
 const villageArea=$('roster').closest('section');
+$('account-open').onclick = () => villageTabs.select('account');
+$('discord-link').onclick = () => run(async () => {
+  const result = await api('/auth/discord/link');
+  location.href = result.authorization_url;
+});
+$('discord-unlink').onclick = () => run(async () => {
+  await api('/auth/discord/link', undefined, 'DELETE');
+  const user = await api('/auth/me'); signedInUser = user; renderAccount(user);
+  $('discord-link-message').textContent = 'Discord account unlinked.';
+});
 let auctionPanel=null,playPanel=null;
 const characterWorkspace=GameCharacterWorkspace({recruit:$('create'),onSelect:id=>{playPanel?.selectCharacter(id);auctionPanel?.setAdventurer(id);}});
 const openCharacter=(id,section='overview')=>{characterWorkspace.open(id,section);villageTabs.select('character');};
@@ -400,6 +418,7 @@ const villageTabs=GameUI.tabs(villageHost,[
   {key:'home',label:'Home',nodes:[homePanel]},
   {key:'journeys',label:'Quests',nodes:[questContent]},
   {key:'character',label:'Character',nodes:[characterWorkspace]},
+  {key:'account',label:'Account',nodes:[$('account-page')]},
   {key:'auction-house',label:'Auction House',nodes:[auctionPanel]},
   {key:'shop',label:'Village Shops',nodes:[villageShop]},
   {key:'worldsmith',label:'Worldsmith',nodes:[developerPanel]},
@@ -413,6 +432,7 @@ $('public-home').append(homePanel);
 GameUI.hint($('wait'),'Spend your action waiting. Enemies still act, and turn cooldowns advance.');
 GameUI.hint($('target'),'Choose a living enemy as your primary target, or let the server choose.');
 const discordRedirect = GameApi.consumeDiscordRedirect?.();
+if (discordRedirect?.linked) $('discord-link-message').textContent = 'Discord account linked.';
 if (discordRedirect?.recovery) {
   const password = sessionStorage.getItem('discord-recovery-password');
   sessionStorage.removeItem('discord-recovery-password');

@@ -19,8 +19,9 @@
   function consumeDiscordRedirect() {
     const hash = new URLSearchParams(location.hash.replace(/^#/, ""));
     const tokenValue = hash.get("discord_access_token");
-    if (!tokenValue) return null;
-    const result = {token: tokenValue, recovery: hash.get("recovery") === "1"};
+    const linked = hash.get("discord_linked") === "1";
+    if (!tokenValue && !linked) return null;
+    const result = {token: tokenValue, linked, recovery: hash.get("recovery") === "1"};
     if (!result.recovery) saveSession(tokenValue, hash.get("expires_in"));
     history.replaceState(null, "", location.pathname + location.search);
     return result;
@@ -38,7 +39,7 @@
       super(message); this.name = "ApiError"; this.status = status; this.code = code;
     }
   }
-  async function request(path, body) {
+  async function request(path, body, method) {
     if (!path.startsWith("/") || path.startsWith("//") || path.includes("..")) {
       throw new ApiError("API paths must be relative to the configured endpoint.");
     }
@@ -52,7 +53,7 @@
     const timeout = setTimeout(() => controller.abort(), 20000);
     try {
       const response = await fetch(base + path, {
-        method: body === undefined ? "GET" : "POST", headers,
+        method: method || (body === undefined ? "GET" : "POST"), headers,
         body: body === undefined ? undefined : JSON.stringify(body),
         credentials: "omit", cache: "no-store", redirect: "error", signal: controller.signal,
       });

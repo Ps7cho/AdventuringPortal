@@ -22,7 +22,8 @@
   </section>
   <p id="error" role="alert"></p>
   <div id="game" hidden>
-  <section class="row"><strong id="account-name"></strong><button id="logout">Log Out</button></section>
+  <section class="row"><button id="account-open" type="button"><strong id="account-name"></strong></button><button id="logout">Log Out</button></section>
+  <section id="account-page" class="account-page"><p class="eyebrow">ACCOUNT</p><h2>Account settings</h2><p id="account-identity"></p><section class="account-provider"><h3>Discord</h3><p id="discord-link-status">Checking Discord connection...</p><button id="discord-link" type="button">Link Discord account</button><button id="discord-unlink" type="button" hidden>Unlink Discord account</button><p id="discord-link-message" role="status"></p></section></section>
   <section>
     <form id="create" class="row"><input id="name" aria-label="Adventurer name" placeholder="Adventurer name" required maxlength="80"><button>Create Adventurer</button></form>
     <div id="roster"></div>
