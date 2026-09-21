@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Adventurer</title>
+  <link rel="stylesheet" href="./ui.css?v=ability-design1">
+</head>
+<body class="game-menu"><main>
+  <nav><a href="./index.html?village=1">Return to Village</a><a id="resume" hidden>Resume Adventure</a></nav>
+  <p id="error" role="alert"></p>
+  <p id="loading" role="status">Loading adventurer...</p>
+  <div id="sheet" hidden>
+    <section id="identity-strip"><h1 id="name"></h1><p id="summary"></p><progress id="health" max="100"></progress><div id="character-statuses" class="status-badges"></div></section>
+    <section id="recovery-panel"><h2>Recovery</h2><button id="long-rest">Long Rest in Village</button><p id="rest-status" role="status"></p></section>
+    <section id="friends-directory"><div class="friends-heading"><div><p class="eyebrow">PARTY CONNECTIONS</p><h2>Friends</h2><p>Players you have adventured with, sorted by who is online now.</p></div><button id="friends-refresh" type="button">Refresh presence</button></div><div class="friends-groups"><section><h3>Online <span id="online-friend-count">0</span></h3><div id="online-friends" class="friends-list"></div></section><section><h3>Offline <span id="offline-friend-count">0</span></h3><div id="offline-friends" class="friends-list"></div></section></div></section>
+    <section><h2>Play with Friends</h2>
+      <button id="copy-invite" type="button">Copy Invite Code</button>
+      <form id="party-join" class="row"><label>Invite code <input id="party-code" maxlength="64" placeholder="Paste a friend's code" required></label><button>Join Party</button></form>
+      <div id="party-roster" aria-live="polite"></div>
+      <p id="party-selection"></p>
+      <div class="row"><button id="party-ready" type="button" hidden>Ready Up</button><button id="party-refresh" type="button">Refresh Party</button><button id="party-leave" type="button">Leave Party</button></div>
+      <p id="party-status" role="status"></p>
+      <label id="manual-invite" hidden>Copy this code to share <input id="invite-fallback" readonly></label>
+    </section>
+    <section id="progression-panel" class="adventurer-showcase"></section>
+    <section><h2>Attributes</h2><p id="attribute-points"></p><p id="combat-stats"></p><div id="stats" class="stats"></div></section>
+    <section id="inventory-workspace"></section>
+    <div id="consumable-inventory" hidden></div><p id="orb-status" role="status"></p>
+    <section id="essence-section"><h2>Essences <span id="essence-count"></span></h2><p>Three permanent choices. Use orbs on absorbed essences to learn abilities. Other signature and passive concepts remain planned.</p><div id="absorbed-essences"></div></section>
+    <section><h2>Skills</h2><div id="skills"></div></section>
+    <section><h2>Equipped Abilities</h2><p class="section-note">Drag an ability into a slot, or use its selector. Save your loadout to apply changes.</p><form id="loadout" class="row"></form><p id="loadout-status" role="status"></p></section>
+    <section><h2>Abilities</h2><div id="abilities"></div></section>
+  </div>
+<script src="./ui.js?v=afflictions1"></script>
+<script src="./config.js?v=20260913-village1"></script>
+<script src="./api.js?v=20260913-village1"></script>
+<script src="./equipment_inventory.js?v=equipment2"></script>
+<script src="./character.js?v=ability-design1"></script></main></body></html>

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mosswood Village</title>
+  <link rel="stylesheet" href="./ui.css?v=ability-design1">
+</head>
+<body>
+<main>
+  <header><h1>Mosswood Village</h1><a href="#" data-api-docs>API Docs</a></header>
+  <div id="public-home"></div>
+  <section id="login-panel">
+    <h2>Account Login</h2>
+    <form id="login-form" class="row">
+      <label>Username <input id="username" autocomplete="username" minlength="3" maxlength="32" pattern="[a-zA-Z0-9_]+" required></label>
+      <label>Password <input id="password" type="password" autocomplete="current-password" minlength="12" maxlength="128" required></label>
+      <button type="submit" value="login">Log In</button>
+      <button type="submit" value="register">Create Account</button>
+    </form>
+  </section>
+  <p id="error" role="alert"></p>
+  <div id="game" hidden>
+  <section class="row"><strong id="account-name"></strong><button id="logout">Log Out</button></section>
+  <section>
+    <form id="create" class="row"><input id="name" aria-label="Adventurer name" placeholder="Adventurer name" required maxlength="80"><button>Create Adventurer</button></form>
+    <div id="roster"></div>
+    
+    <details><summary>Testing tools: custom encounters and saved IDs</summary><div class="row"><label>Enemy <select id="enemy" aria-label="Enemy"></select></label><label>Adventure <select id="length"><option value="1">Single encounter</option><option value="3">Three-encounter journey</option></select></label><button id="start" disabled>Start Encounter</button><input id="resume-id" aria-label="Encounter ID" placeholder="Encounter ID"><button id="resume">Load Encounter</button></div></details>
+    <details><summary>Enemy Stats</summary><div id="enemy-details"></div></details>
+  </section>
+  <section id="combat" hidden>
+    <div class="row"><h2 id="status"></h2><button id="refresh" title="Refresh encounter" aria-label="Refresh encounter">&#8635;</button></div>
+    <p id="encounter-id"></p>
+    <p id="quest-progress"></p><p id="stage-description"></p><p id="camp-description"></p><div id="group-loot" class="slot" hidden></div><button id="continue" hidden>Continue Journey</button><button id="push-on" hidden>Press On</button><button id="return-village" hidden>Return to Village</button>
+    <div id="combatants" class="combatants"></div>
+    <div id="encounter-options" class="encounter-options">
+      <div class="row"><label>Acting adventurer <select id="actor"></select></label><button id="wait" class="quiet-action">Wait</button></div>
+      <p id="action-prompt">Choose an action type.</p>
+      <div id="action-categories" class="action-categories" aria-label="Action types"></div>
+      <div id="action-branch" hidden>
+        <div class="row"><button id="action-back" type="button">Back</button><strong id="action-path"></strong></div>
+        <div id="action-buttons" class="action-choices"></div>
+        <div id="consumable-buttons" class="action-choices"></div>
+        <div id="action-detail" hidden>
+          <h3 id="action-name"></h3><p id="action-description"></p>
+          <div class="row">
+            <label id="weapon-field" hidden>Weapon <select id="combat-weapon"></select></label>
+            <label id="enemy-field" hidden>Enemy target <select id="target"></select></label>
+            <label id="ally-field" hidden>Ally target <select id="consumable-target"></select></label>
+          </div>
+          <p id="action-availability" role="status"></p>
+          <button id="action-use" type="button">Use action</button>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section><h2>Turn Events</h2><ol id="log" aria-live="polite"></ol></section>
+  </div>
+</main>
+<script src="./ui.js?v=afflictions1"></script>
+<script src="./news.js?v=equipment1"></script>
+<script src="./lobby.js?v=active-character1"></script>
+<script src="./journey_ui.js?v=quest-lobby1"></script>
+<script src="./config.js?v=20260913-village1"></script>
+<script src="./api.js?v=20260913-village1"></script>
+<script src="./auction_house.js?v=active-character1"></script>
+<script src="./ability_designer.js?v=ability-design1"></script>
+<script src="./catalog_editor.js?v=ability-design1"></script>
+<script src="./debug.js?v=ability-design1"></script>
+<script src="./village.js?v=ability-design1"></script>
+</body>
+</html>
