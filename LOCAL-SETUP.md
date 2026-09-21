@@ -10,15 +10,9 @@ Open http://127.0.0.1:5173. The server serves only this frontend folder; the gam
 API and database remain hosted remotely. No local FastAPI server is needed.
 
 Set `apiBaseUrl` in `config.js` to your hosted API URL ending in `/api`.
-On the hosted backend, allow this local frontend with:
-
-```text
-PUBLIC_CLIENT_ORIGINS=["http://127.0.0.1:5173","http://localhost:5173"]
-```
-
-These are the current backend defaults. If you already configured other allowed
-origins, keep them and add these local origins. Restart the backend after changing
-its environment variables. Use the frontend's login form with your game account.
+The client uses bearer sessions and can connect to the hosted backend from any
+origin. Its login requests explicitly send `X-Client-Auth: bearer`; no API cookie
+is used or required. Use the frontend's login form with your game account.
 
 ## Worldsmith content editor
 

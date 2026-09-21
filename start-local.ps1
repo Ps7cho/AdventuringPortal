@@ -1,6 +1,6 @@
 param([int]$Port = 5173)
 $ErrorActionPreference = 'Stop'
-$localPython = Join-Path $PSScriptRoot '..\.venv\Scripts\python.exe'
+$localPython = Join-Path $PSScriptRoot '..\..\.venv\Scripts\python.exe'
 if (-not (Test-Path -LiteralPath $localPython)) {
     $localPython = (Get-Command python -ErrorAction Stop).Source
 }

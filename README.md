@@ -33,20 +33,19 @@ This copy uses `https://pythonapi-onvq.onrender.com/api`.
 Serve this folder as the web root, for example:
 
 ```sh
-cd "D:\Game Assets\Builds\PythonAPI\FrontEndJS"
+cd "D:\Game Assets\Builds\PythonAPI\FrontEndJS\AdventuringPortal"
 python -m http.server 5173 --bind 127.0.0.1
 ```
 
 Open `http://127.0.0.1:5173`. Register your own username/password or log in with an
 existing account. Direct `file://` opening is not supported. On a static host, set
-the publish directory to `FrontEndJS` (or `.` when this folder is its own repository). No SPA fallback or server rewrites are
+the publish directory to `AdventuringPortal` (or `.` when this folder is its own repository). No SPA fallback or server rewrites are
 needed: character pages use `adventurer.html?id=<UUID>`. Relative links also work
 when this folder is hosted below a subdirectory.
 
-For production, use HTTPS for both the site and API. Configure the backend's
-`PUBLIC_CLIENT_ORIGINS` with the exact frontend origin, e.g.
-`["https://play.example.com"]`. This is a server setting, not a second client
-setting. The API URL is public; Neon credentials and all privileged configuration
+For production, use HTTPS for both the site and API. The client uses explicit
+bearer authentication and works from arbitrary hosting origins; cookie sessions
+remain same-origin only. The API URL is public; Neon credentials and all privileged configuration
 remain on the server. Never host the parent backend directory.
 
 ## API Pattern
