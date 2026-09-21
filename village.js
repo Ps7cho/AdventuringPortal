@@ -346,7 +346,7 @@ $('logout').onclick = () => run(async () => { await api('/auth/logout', {}); sho
 const villageArea=$('roster').closest('section');
 $('account-open').onclick = () => villageTabs.select('account');
 $('discord-link').onclick = () => run(async () => {
-  const result = await api('/auth/discord/link');
+  const result = await api('/auth/discord/link', {});
   location.href = result.authorization_url;
 });
 $('discord-unlink').onclick = () => run(async () => {
