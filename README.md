@@ -30,6 +30,11 @@ and the saved `fallen` profile; no soul-use action is exposed yet.
 Set `apiBaseUrl` in `config.js` to the server's public API URL, including `/api`.
 This copy uses `https://pythonapi-onvq.onrender.com/api`.
 
+The login panel includes Discord sign-in and Discord-assisted password recovery.
+Configure the backend Discord OAuth credentials and set its frontend callback URL
+to this site's `index.html`; the callback returns a short-lived bearer session in
+the URL fragment, which the client consumes without sending it to the server.
+
 Serve this folder as the web root, for example:
 
 ```sh

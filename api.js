@@ -10,6 +10,21 @@
   const base = url.href.replace(/\/$/, "");
   const sessionKey = "mosswood-session:" + base;
   const clearSession = () => sessionStorage.removeItem(sessionKey);
+  function saveSession(tokenValue, expiresIn) {
+    if (!tokenValue) return;
+    sessionStorage.setItem(sessionKey, JSON.stringify({
+      token: tokenValue, expiresAt: Date.now() + Number(expiresIn || 86400) * 1000,
+    }));
+  }
+  function consumeDiscordRedirect() {
+    const hash = new URLSearchParams(location.hash.replace(/^#/, ""));
+    const tokenValue = hash.get("discord_access_token");
+    if (!tokenValue) return null;
+    const result = {token: tokenValue, recovery: hash.get("recovery") === "1"};
+    if (!result.recovery) saveSession(tokenValue, hash.get("expires_in"));
+    history.replaceState(null, "", location.pathname + location.search);
+    return result;
+  }
   function token() {
     try {
       const session = JSON.parse(sessionStorage.getItem(sessionKey) || "null");
@@ -54,9 +69,7 @@
         throw new ApiError(message, response.status, detail?.code);
       }
       if (login) {
-        sessionStorage.setItem(sessionKey, JSON.stringify({
-          token: data.access_token, expiresAt: Date.now() + data.expires_in * 1000,
-        }));
+        saveSession(data.access_token, data.expires_in);
       }
       return data;
     } catch (error) {
@@ -66,6 +79,6 @@
         : "Cannot reach the game server. Check your connection and the configured API address.");
     } finally { clearTimeout(timeout); }
   }
-  window.GameApi = Object.freeze({request, clearSession, baseUrl: base, ApiError, liveToken: token,
+  window.GameApi = Object.freeze({request, clearSession, consumeDiscordRedirect, baseUrl: base, ApiError, liveToken: token,
     docsUrl: new URL("../docs", base + "/").href});
 })();

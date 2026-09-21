@@ -350,6 +350,13 @@ const questLobby=GameQuestLobby({api,
   refreshParties:async()=>{villageParties=await api('/parties');friendFeedError=false;questLobby.update(villageHeroes,villageParties);updateHome();return villageParties;},
   goBack:kind=>questTabs.select(kind==='contract'?'bulletin':kind==='epic'?'epics':kind==='raid'?'raids':'quest-list')
 });
+$('discord-login').onclick = () => { location.href = GameApi.baseUrl + '/auth/discord/login'; };
+$('discord-recovery-form').onsubmit = event => {
+  event.preventDefault();
+  const password = $('discord-new-password').value;
+  sessionStorage.setItem('discord-recovery-password', password);
+  location.href = GameApi.baseUrl + '/auth/discord/login?purpose=recovery';
+};
 const openQuestLobby=(entry,type='template')=>{questLobby.open(entry,type);questTabs.select('lobby');};
 const drawBulletin=GameBulletin(bulletinPanel,contract=>openQuestLobby(contract,'contract'));
 const bestiary=document.createElement('section'); bestiary.append(...villageArea.querySelectorAll('details'));
@@ -405,6 +412,16 @@ new MutationObserver(()=>{if($('tab-worldsmith')?.getAttribute('aria-selected')=
 $('public-home').append(homePanel);
 GameUI.hint($('wait'),'Spend your action waiting. Enemies still act, and turn cooldowns advance.');
 GameUI.hint($('target'),'Choose a living enemy as your primary target, or let the server choose.');
+const discordRedirect = GameApi.consumeDiscordRedirect?.();
+if (discordRedirect?.recovery) {
+  const password = sessionStorage.getItem('discord-recovery-password');
+  sessionStorage.removeItem('discord-recovery-password');
+  if (password) run(async () => {
+    await api('/password/reset-with-discord', {discord_access_token: discordRedirect.token, new_password: password});
+    $('discord-recovery-status').textContent = 'Password reset. You can now sign in with your new password.';
+  });
+  else $('discord-recovery-status').textContent = 'Enter a new password before starting recovery.';
+}
 run(async () => {
   try { await loadAccount(await api('/auth/me')); }
   catch (error) { if (error.status !== 401) throw error; }
