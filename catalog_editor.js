@@ -117,7 +117,13 @@ window.GameCatalogEditor = function(api, onSaved) {
         else values[field.name]=input.value;
       }
       if(catalog==='quests'&&values.journey?.stages){const slugs=[...new Set(values.journey.stages.flatMap(stage=>(stage.groups||[]).flat()))];values.enemy_pool=slugs.map(slug=>(catalogs.enemies?.records||[]).find(r=>r.values.slug===slug)?.values.name||slug);}
-      const arrayValue=value=>{if(Array.isArray(value))return value;if(typeof value==='string'){try{const parsed=JSON.parse(value);if(Array.isArray(parsed))return parsed;}catch{/* Legacy text fields fall back to an empty operations list. */}}return [];};
+      const arrayValue=value=>{
+        if(typeof value==='string'){try{value=JSON.parse(value);}catch{return [];}}
+        const entries=Array.isArray(value)?value:value&&typeof value==='object'?[value]:[];
+        // Every affliction operation must itself be an object. Old visual
+        // editor values occasionally contain strings such as "[object Object]".
+        return entries.filter(item=>item&&typeof item==='object'&&!Array.isArray(item));
+      };
       if(create&&catalog==='abilities')values.affliction_ops=arrayValue(values.affliction_ops);
       if(create&&catalog==='ability_archetypes'){
         if(typeof values.definition==='string'){try{values.definition=JSON.parse(values.definition);}catch{values.definition={};}}
