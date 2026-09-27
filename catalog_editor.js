@@ -117,6 +117,12 @@ window.GameCatalogEditor = function(api, onSaved) {
         else values[field.name]=input.value;
       }
       if(catalog==='quests'&&values.journey?.stages){const slugs=[...new Set(values.journey.stages.flatMap(stage=>(stage.groups||[]).flat()))];values.enemy_pool=slugs.map(slug=>(catalogs.enemies?.records||[]).find(r=>r.values.slug===slug)?.values.name||slug);}
+      const arrayValue=value=>{if(Array.isArray(value))return value;if(typeof value==='string'){try{const parsed=JSON.parse(value);if(Array.isArray(parsed))return parsed;}catch{/* Legacy text fields fall back to an empty operations list. */}}return [];};
+      if(create&&catalog==='abilities')values.affliction_ops=arrayValue(values.affliction_ops);
+      if(create&&catalog==='ability_archetypes'){
+        if(typeof values.definition==='string'){try{values.definition=JSON.parse(values.definition);}catch{values.definition={};}}
+        values.definition={...(values.definition||{}),affliction_ops:arrayValue(values.definition?.affliction_ops)};
+      }
       if(catalog==='abilities'&&!Array.isArray(values.affliction_ops))throw new Error('Worldsmith did not prepare affliction operations as an array. Refresh the page and reopen the duplicate.');
       if(catalog==='ability_archetypes'&&!Array.isArray(values.definition?.affliction_ops||[]))throw new Error('Worldsmith did not prepare the archetype affliction operations as an array. Refresh the page and reopen the duplicate.');
       return {catalog,key:Object.fromEntries(schema.fields.filter(f=>f.primary_key).map(f=>[f.name,values[f.name]])),values,create,expected_revision:create?null:record.revision};
