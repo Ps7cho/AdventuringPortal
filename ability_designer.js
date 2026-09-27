@@ -40,6 +40,10 @@ window.GameAbilityDesigner = function({fields, inputs, catalog, catalogs}) {
   }else{
     for(const [key,input] of inputs)labels.set(key,input.closest('label'));
   }
+  // Normalize every structured field when the designer opens. Previously an
+  // invalid affliction_ops value was repaired only after that specific field
+  // was read, so a straight duplicate could submit the old malformed value.
+  for(const key of ['effect_chain','rank_upgrades','allowed_weapon_tags','affliction_ops'])get(key);
   const identity=el('div');identity.className='editor-fields';
   for(const key of ['name','slug','description'])if(inputs.get(key))identity.append(inputs.get(key).closest('label'));
   builder.append(identity);
