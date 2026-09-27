@@ -137,6 +137,13 @@ window.GameCatalogEditor = function(api, onSaved) {
       catch(e){error.textContent=e.message;reviewed=null;}
       finally{lock(false);}
     };
-    cancel.onclick=close;actions.append(validate,save,cancel);dialog.append(fields,error,review,actions);dialog.showModal();
+    cancel.onclick=close;actions.append(validate,save,cancel);dialog.append(fields,error,review,actions);
+    try{dialog.showModal();}
+    catch(modalError){
+      // A few embedded/mobile browsers disable the native modal API. Keep the
+      // editor usable instead of making Worldsmith actions appear inert.
+      console.warn('Native editor dialog unavailable; using overlay fallback.',modalError);
+      dialog.setAttribute('open','');dialog.style.cssText+=';position:fixed;z-index:2147483647;inset:5vh auto auto 50%;transform:translateX(-50%);display:block;';
+    }
   };
 };
