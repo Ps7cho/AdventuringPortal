@@ -13,12 +13,20 @@ window.GameAbilityDesigner = function({fields, inputs, catalog, catalogs}) {
   const label=(name,control)=>{const n=el('label',name);control.setAttribute('aria-label',name);n.append(control);return n;};
   const button=(name,action)=>{const n=el('button',name);n.type='button';n.onclick=action;return n;};
   function changed(){fields.dispatchEvent(new Event('input',{bubbles:true}));}
-  function get(name){const n=controls.get(name);if(!n)return defaults[name];if(n.type==='checkbox')return n.checked;if(['effect_chain','rank_upgrades','allowed_weapon_tags','affliction_ops'].includes(name))return JSON.parse(n.value||JSON.stringify(defaults[name]));if(name in dialNames)return n.value===''?null:Number(n.value);if(name==='status_effect_slug')return n.value||null;return n.value;}
+  function jsonValue(input,fallback,kind){
+    const copy=()=>JSON.parse(JSON.stringify(fallback));
+    const reset=()=>{const value=copy();input.value=JSON.stringify(value,null,2);return value;};
+    const text=input.value.trim();
+    if(!text||text==='[object Object]')return reset();
+    try{const value=JSON.parse(text);return kind==='array'?!Array.isArray(value)?reset():value:!value||Array.isArray(value)||typeof value!=='object'?reset():value;}
+    catch{return reset();}
+  }
+  function get(name){const n=controls.get(name);if(!n)return defaults[name];if(n.type==='checkbox')return n.checked;if(['effect_chain','allowed_weapon_tags','affliction_ops'].includes(name))return jsonValue(n,defaults[name],'array');if(name==='rank_upgrades')return jsonValue(n,defaults[name],'object');if(name in dialNames)return n.value===''?null:Number(n.value);if(name==='status_effect_slug')return n.value||null;return n.value;}
   function put(name,value){const n=controls.get(name);if(!n)return;if(n.type==='checkbox')n.checked=Boolean(value);else n.value=typeof value==='object'&&value!==null?JSON.stringify(value,null,2):value??'';}
   function definition(){return Object.fromEntries(Object.keys(defaults).map(k=>[k,get(k)]));}
   function commit(){if(isTemplate)inputs.get('definition').value=JSON.stringify(definition(),null,2);changed();}
   if(isTemplate){
-    const data={...defaults,...JSON.parse(inputs.get('definition').value||'{}')};
+    const data={...defaults,...jsonValue(inputs.get('definition'),{},'object')};
     for(const [key,value] of Object.entries(data)){
       let n;
       const choices={effect_type:['damage','heal','guard','evade','buff','shield','cleanse','affliction'],target_type:['enemy','self','ally','party'],cooldown_type:['turn','minutes','hours']};
