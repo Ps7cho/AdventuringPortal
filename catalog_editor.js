@@ -117,6 +117,8 @@ window.GameCatalogEditor = function(api, onSaved) {
         else values[field.name]=input.value;
       }
       if(catalog==='quests'&&values.journey?.stages){const slugs=[...new Set(values.journey.stages.flatMap(stage=>(stage.groups||[]).flat()))];values.enemy_pool=slugs.map(slug=>(catalogs.enemies?.records||[]).find(r=>r.values.slug===slug)?.values.name||slug);}
+      if(catalog==='abilities'&&!Array.isArray(values.affliction_ops))throw new Error('Worldsmith did not prepare affliction operations as an array. Refresh the page and reopen the duplicate.');
+      if(catalog==='ability_archetypes'&&!Array.isArray(values.definition?.affliction_ops||[]))throw new Error('Worldsmith did not prepare the archetype affliction operations as an array. Refresh the page and reopen the duplicate.');
       return {catalog,key:Object.fromEntries(schema.fields.filter(f=>f.primary_key).map(f=>[f.name,values[f.name]])),values,create,expected_revision:create?null:record.revision};
     }
     function lock(value){busy=value;validate.disabled=cancel.disabled=value;if(abilityBuilder)abilityBuilder.disabled=value;for(const field of schema.fields)inputs.get(field.name).disabled=value || field.immutable&&!create;save.disabled=value||!reviewed;}
