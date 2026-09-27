@@ -20,6 +20,11 @@ After signing in with a developer account, open the `Worldsmith` tab to curate
 quests, enemy/ability assignments, essence recipes, loot tables, villages, shops,
 weapons, and armor. Catalog writes are authorized by `users.account_type=developer`.
 
+The **Manage data** section is a separate Worldsmith tab for reviewing every
+saved definition and relation. It can delete a record only after a server-side
+reference check confirms that no catalog rule, player inventory, or other saved
+game state still depends on it. Remove or update those linked records first.
+
 Player accounts can inspect the public gameplay catalog but cannot save Worldsmith
 changes. Assign the developer role through an administrator-controlled database
 migration or SQL session; there is intentionally no client-side or environment-
