@@ -114,3 +114,9 @@ same adventurers; you can change the selection before starting. The history API
 also provides best scores per order-independent composition, including solo runs.
 Worldsmith's Gauntlets section edits pools, scaling and a lower party-size limit.
 Changes apply only to future runs; running trials retain their departure snapshots.
+
+For unattended comparisons, use the backend's `scripts/gauntlet_batch.py` with a
+JSON case file and `GAUNTLET_TOKEN` environment variable. It automatically chooses
+combat actions, advances, repeats solo/team configurations and writes a JSON report.
+See `PythonAPI/docs/gauntlet-automation.md` for configuration and safety limits.
+This is a command-line runner; the browser need not stay open.
