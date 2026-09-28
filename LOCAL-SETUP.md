@@ -95,3 +95,22 @@ and a gear shop. Equipped gear adds catalog-defined attributes through existing
 server combat formulas; outfits are locked during adventures. Gear purchases and
 auction trades are supported. This first catalog contains one Iron-rank item per
 slot; quest loot remains unchanged. Equipping never restores health.
+
+## Gauntlet MVP
+
+Deploy the Python backend with migration `030_gauntlets` before deploying the
+frontend's Gauntlet tab. Normal server startup applies the migration and seeds
+the Endless Road definition. No manual Neon SQL is needed.
+
+Select 1–6 available adventurers, start, resolve the normal combat actions, and
+choose Next Gauntlet Stage after victory. Health/cooldowns carry between stages;
+all-party defeat records the result. Runs are nonlethal: original character health,
+cooldowns, statuses, inventory, gold, XP and statistics remain unchanged. There are
+no rests, consumables or rewards. End Gauntlet Run retires after a victory.
+
+Gauntlet Run Summary and the Gauntlet history show reached versus completed stages,
+duration and links to the existing battle logs. Use this party again selects the
+same adventurers; you can change the selection before starting. The history API
+also provides best scores per order-independent composition, including solo runs.
+Worldsmith's Gauntlets section edits pools, scaling and a lower party-size limit.
+Changes apply only to future runs; running trials retain their departure snapshots.

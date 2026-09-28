@@ -117,12 +117,19 @@ function render(data, pushed=false) {
   } else $('return-village').textContent='Return to Village';
   $('stage-description').textContent=data.quest.stage_description || '';
   $('return-village').hidden=!data.quest.can_return;
+  gauntletSummary.hidden=!data.gauntlet;
+  if(data.gauntlet){
+    $('quest-progress').textContent=`Gauntlet stage ${data.quest.encounter_number} | Highest reached: ${data.gauntlet.reached} | Stages completed: ${data.gauntlet.completed}`;
+    $('continue').textContent='Next Gauntlet Stage';
+    $('return-village').textContent=data.gauntlet.status==='awaiting_continue'?'End Gauntlet Run':'Return to Village';
+    $('camp-description').textContent='Nonlethal trial: damage and cooldowns persist within this run. Pre-run character state is preserved. No rewards or consumables.';
+  }
   const previousEnemyTarget=$('target').value;
   $('target').replaceChildren(new Option('Automatic target',''),...data.enemies.filter(e=>e.hp>0).map(e=>new Option(e.name,e.id)));
   if([...$('target').options].some(o=>o.value===previousEnemyTarget)) $('target').value=previousEnemyTarget;
   $('combatants').innerHTML = [...data.participants, ...data.enemies].map(p => `
     <div class="combatant ${data.enemies.includes(p) ? 'enemy' : ''}">
-    <strong>${escape(p.name)}${p.hp<=0 && data.participants.includes(p) ? (data.quest.journey.death_policy==='rescue_on_return' && data.state!=='defeat' ? ' (Downed)' : ' (Dead)') : ''}</strong><p>${p.hp} / ${p.max_hp} HP${p.acted ? ' - Action submitted' : ''}</p>
+    <strong>${escape(p.name)}${p.hp<=0 && data.participants.includes(p) ? (data.gauntlet || data.quest.journey.death_policy==='rescue_on_return' && data.state!=='defeat' ? ' (Downed)' : ' (Dead)') : ''}</strong><p>${p.hp} / ${p.max_hp} HP${p.acted ? ' - Action submitted' : ''}</p>
     ${p.evasion && data.turn < p.evasion.until_turn ? `<small>Evasion: ${p.evasion.chance_percent}% against next direct attack</small>` : ''}
     ${p.flinched ? '<small>Flinched: next action skipped</small>' : ''}
     <progress value="${p.hp}" max="${p.max_hp}"></progress>
@@ -156,7 +163,14 @@ $('start').onclick = () => run(async () => {
 });
 $('wait').onclick=()=>run(async()=>render(await api(`/encounters/${encounter.id}/actions`,{actor_id:$('actor').value,expected_turn:encounter.turn,action:'wait'})));
 $('return-village').onclick=()=>run(async()=>{
-  if(encounter.quest.can_continue) await api(`/encounters/${encounter.id}/continue`,{return_to_village:true});
+  if(encounter.quest.can_continue){
+    const returned=await api(`/encounters/${encounter.id}/continue`,{return_to_village:true});
+    if(encounter.gauntlet)render(returned,true);
+  }
+  if(encounter.gauntlet){
+    const id=encounter.gauntlet.id;localStorage.removeItem(savedKey());
+    villageTabs.select('gauntlet');await gauntletPanel.showRun(id);return;
+  }
   localStorage.removeItem(savedKey()); location.href='./index.html?village=1';
 });
 $('continue').onclick = () => run(async () => render(await api(`/encounters/${encounter.id}/continue`, encounter.quest.requires_choice ? {choice:'rest'} : {})));
@@ -414,6 +428,10 @@ async function refreshShop(){try{villageShopVillages=await api('/shop/villages')
 shopVillage.onchange=()=>{const village=villageShopVillages.find(v=>v.slug===shopVillage.value),shop=village?.shops?.[0];villageShopCatalog=Object.fromEntries((shop?.tables||[]).map(table=>[table.category,table.items]));drawVillageShop();};
 villageShop.querySelector('[data-shop-refresh]').onclick=refreshShop;shopHero.onchange=drawVillageShop;
 const developerPanel=GameDebug(api);
+const gauntletPanel=GameGauntlet({api,onEncounter:data=>render(data)});
+const gauntletSummary=document.createElement('button');gauntletSummary.type='button';gauntletSummary.textContent='Gauntlet Run Summary';gauntletSummary.hidden=true;
+gauntletSummary.onclick=()=>{villageTabs.select('gauntlet');gauntletPanel.showRun(encounter.gauntlet.id);};
+$('return-village').after(gauntletSummary);
 const villageTabs=GameUI.tabs(villageHost,[
   {key:'home',label:'Home',nodes:[homePanel]},
   {key:'journeys',label:'Quests',nodes:[questContent]},
@@ -422,12 +440,14 @@ const villageTabs=GameUI.tabs(villageHost,[
   {key:'auction-house',label:'Auction House',nodes:[auctionPanel]},
   {key:'shop',label:'Village Shops',nodes:[villageShop]},
   {key:'worldsmith',label:'Worldsmith',nodes:[developerPanel]},
+  {key:'gauntlet',label:'Gauntlet',nodes:[gauntletPanel]},
   {key:'encounter',label:'Encounter',nodes:[noEncounter,$('combat'),$('log').closest('section')]},
   {key:'bestiary',label:'Bestiary & Testing',nodes:[bestiary]}
 ]);
 new MutationObserver(()=>{if($('tab-auction-house').getAttribute('aria-selected')==='true')auctionPanel.refresh();}).observe($('tab-auction-house'),{attributes:true,attributeFilter:['aria-selected']});
 new MutationObserver(()=>{if($('tab-shop')?.getAttribute('aria-selected')==='true')refreshShop();}).observe($('tab-shop'),{attributes:true,attributeFilter:['aria-selected']});
 new MutationObserver(()=>{if($('tab-worldsmith')?.getAttribute('aria-selected')==='true')developerPanel.refresh();}).observe($('tab-worldsmith'),{attributes:true,attributeFilter:['aria-selected']});
+new MutationObserver(()=>{if($('tab-gauntlet')?.getAttribute('aria-selected')==='true')gauntletPanel.refresh();}).observe($('tab-gauntlet'),{attributes:true,attributeFilter:['aria-selected']});
 $('public-home').append(homePanel);
 GameUI.hint($('wait'),'Spend your action waiting. Enemies still act, and turn cooldowns advance.');
 GameUI.hint($('target'),'Choose a living enemy as your primary target, or let the server choose.');
