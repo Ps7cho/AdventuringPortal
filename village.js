@@ -259,7 +259,7 @@ function renderActions() {
     const previousWeapon=$('combat-weapon').value;
     const weapons=actor?.weapons || (actor?.equipped_weapon ? [actor.equipped_weapon] : []);
     const compatible=weapons.filter(w=>!choice.allowed_weapon_tags?.length || choice.allowed_weapon_tags.some(t=>w.tags?.includes(t)));
-    $('combat-weapon').replaceChildren(...compatible.map(w=>new Option(`${w.name} (${w.base_damage} damage)`,w.id)));
+    $('combat-weapon').replaceChildren(...compatible.map(w=>new Option(`${w.name} (${w.base_damage} damage)${w.effects?.length?' · '+w.effects.map(e=>e.name).join(', '):''}`,w.id)));
     if(!compatible.length) $('combat-weapon').append(new Option('No compatible weapon',''));
     const preferred=compatible.find(w=>w.id===previousWeapon) || compatible.find(w=>w.id===actor?.equipped_weapon?.id);
     if(preferred) $('combat-weapon').value=preferred.id;

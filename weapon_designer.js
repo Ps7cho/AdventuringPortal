@@ -12,7 +12,7 @@ window.GameWeaponPoolDesigner = function({fields,inputs,catalogs}) {
     list.replaceChildren();
     for(const [index,entry] of entries.entries()){
       const row=el('div');row.className='quest-row';
-      const effectLabel=el('label','Weapon effect'),select=el('select');
+      const effectLabel=el('label','Weapon effect'),select=el('select');select.setAttribute('aria-label','Weapon effect');
       for(const effect of effects.filter(e=>e.slug===entry.effect_slug||!entries.some(item=>item.effect_slug===e.slug)))select.add(new Option(effect.name,effect.slug));
       select.value=entry.effect_slug;select.onchange=()=>{entry.effect_slug=select.value;save();draw();};effectLabel.append(select);
       const weightLabel=el('label','Weight'),weight=el('input');weight.type='number';weight.min='1';weight.max='10000';weight.value=entry.weight;weight.oninput=()=>{entry.weight=Number(weight.value);save();};weightLabel.append(weight);

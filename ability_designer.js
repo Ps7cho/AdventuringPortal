@@ -62,7 +62,7 @@ window.GameAbilityDesigner = function({fields, inputs, catalog, catalogs}) {
     if(!chosen)return;
     for(const [key,value] of Object.entries({...defaults,...chosen.definition}))put(key,value);
     if(!isTemplate)put('archetype_slug',chosen.slug);
-    commit();renderChain();renderRanks();updatePrimary();
+    commit();renderChain();renderRanks();renderOperations();updatePrimary();
   }));
   if(!isWeapon)builder.append(templateTools,el('p','Apply a reusable starting point, then tune this definition. Each ability keeps its own saved values. Duplicate an ability to make another variant.'));
   for(const key of isWeapon?['proc_chance_percent','recipient','allowed_weapon_tags']:['effect_type','target_type','power','damage_multiplier','requires_weapon','allowed_weapon_tags','cooldown_type','cooldown_value','max_targets','duration_turns','guard_percent']){
@@ -102,6 +102,7 @@ window.GameAbilityDesigner = function({fields, inputs, catalog, catalogs}) {
     const add=button(isWeapon?'Add affliction application':'Add affliction interaction',()=>{ops.push({op:isWeapon?'apply':'exploit',affliction:afflictions[0][0],stacks:1});save();renderOperations();});add.disabled=!afflictions.length||ops.length>=(isWeapon?16:32);operationsBox.append(add);
   }
   renderOperations();
+  controls.get('affliction_ops')?.addEventListener('change',()=>{try{renderOperations();}catch{/* Review reports malformed operations. */}});
   const chainBox=el('section'),rankBox=el('section');builder.append(chainBox,rankBox);
   function chain(){return get('effect_chain')||[];}
   function modifierDials(){const choices=new Map(Object.entries(dialNames));for(const ability of [...(catalogs.abilities?.records||[]).map(r=>r.values),{name:'This ability',effect_chain:chain()}])for(const s of ability.effect_chain||[]){if(s.effect==='modifier'){choices.set('modifier:'+s.id,`${s.id}: adjustment`);choices.set('duration:'+s.id,`${s.id}: active rounds`);}else choices.set('step:'+s.id,`${s.id}: amount / conversion`);}return [...choices];}
