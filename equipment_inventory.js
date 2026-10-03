@@ -24,6 +24,13 @@ window.GameEquipmentInventory = (host, {api, reload, id}) => {
       pane.append(node('p',slot+' ? '+(item.required_rank || 'iron')+' rank'));
       if(item.weapon_type){pane.append(node('strong',item.base_damage+' base damage'),node('p',(item.tags || []).join(' ? ')));
         const difference=item.base_damage-(current?.base_damage || 0);pane.append(node('p',`${difference>=0?'+':''}${difference} base damage compared with ${current?.name || 'unarmed'}.`));
+        pane.append(node('h4','Weapon effects'));
+        if(!item.effects?.length)pane.append(node('p','Plain weapon — no rolled effects.'));
+        for(const effect of item.effects||[]){
+          pane.append(node('strong',`${effect.name} · ${effect.proc_chance_percent}% on hit`));
+          for(const op of effect.affliction_ops||[])pane.append(node('p',`Apply ${op.stacks||1} ${op.definition?.name||op.affliction} stack(s) to ${effect.recipient==='self'?'self':'struck targets'}.`));
+          for(const step of effect.effect_chain||[])pane.append(node('p',step.effect==='modifier'?`${step.stat}: ${step.modifier>0?'+':''}${step.modifier}${step.operation==='percent'?'%':''} for ${step.duration} rounds (${step.recipient}).`:`${step.effect}: ${step.value}${step.source==='fixed'?'':'% of '+step.source} (${step.recipient}).`));
+        }
       }else{
         pane.append(node('p',bonuses(item)));
         const keys=new Set([...Object.keys(item.bonuses || {}),...Object.keys(current?.bonuses || {})]);
@@ -47,6 +54,7 @@ window.GameEquipmentInventory = (host, {api, reload, id}) => {
     const grid=get('[data-items]');grid.replaceChildren();
     for(const item of filtered){const b=node('button','','inventory-card');b.type='button';b.setAttribute('aria-pressed',String(selected===item.key));
       b.append(node('small',equipped(item)?'EQUIPPED':item.category.toUpperCase()),node('strong',item.name),node('span',item.weapon_type?item.base_damage+' damage':item.item_type==='gear'?item.slot+' ? '+bonuses(item):'? '+(item.quantity || 1)));
+      if(item.effects?.length)b.append(node('span',item.effects.map(effect=>effect.name).join(', ')));
       b.onclick=()=>{selected=item.key;draw();};grid.append(b);}
     if(!filtered.length)grid.append(node('p',entries.length?'No items match these filters.':'Your pocket dimension is empty.'));
     inspect();

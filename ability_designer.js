@@ -2,9 +2,10 @@
 window.GameAbilityDesigner = function({fields, inputs, catalog, catalogs}) {
   const el=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n;};
   const isTemplate=catalog==='ability_archetypes';
+  const isWeapon=catalog==='weapon_effects';
   const defaults={effect_type:'damage',target_type:'enemy',power:10,damage_multiplier:null,requires_weapon:false,allowed_weapon_tags:[],cooldown_type:'turn',cooldown_value:0,max_targets:1,duration_turns:3,guard_percent:60,effect_chain:[],rank_upgrades:{},ability_type:'attack',status_effect_slug:null,affliction_ops:[]};
   const dialNames={power:'Power / healing % / evasion %',damage_multiplier:'Damage multiplier',cooldown_value:'Cooldown',max_targets:'Maximum targets',duration_turns:'Duration (rounds)',guard_percent:'Guard reduction (%)'};
-  const builder=el('fieldset');builder.className='ability-designer';builder.append(el('legend',isTemplate?'Reusable ability archetype':'Ability designer'));
+  const builder=el('fieldset');builder.className='ability-designer';builder.append(el('legend',isWeapon?'Weapon effect designer':isTemplate?'Reusable ability archetype':'Ability designer'));
   const controls=new Map(inputs), labels=new Map();
   const advanced=el('details');advanced.className='quest-advanced';advanced.append(el('summary','Advanced definition fields'));
   const basic=el('div');basic.className='editor-fields';
@@ -63,20 +64,44 @@ window.GameAbilityDesigner = function({fields, inputs, catalog, catalogs}) {
     if(!isTemplate)put('archetype_slug',chosen.slug);
     commit();renderChain();renderRanks();updatePrimary();
   }));
-  builder.append(templateTools,el('p','Apply a reusable starting point, then tune this definition. Each ability keeps its own saved values. Duplicate an ability to make another variant.'));
-  for(const key of ['effect_type','target_type','power','damage_multiplier','requires_weapon','allowed_weapon_tags','cooldown_type','cooldown_value','max_targets','duration_turns','guard_percent','status_effect_slug']){
+  if(!isWeapon)builder.append(templateTools,el('p','Apply a reusable starting point, then tune this definition. Each ability keeps its own saved values. Duplicate an ability to make another variant.'));
+  for(const key of isWeapon?['proc_chance_percent','recipient','allowed_weapon_tags']:['effect_type','target_type','power','damage_multiplier','requires_weapon','allowed_weapon_tags','cooldown_type','cooldown_value','max_targets','duration_turns','guard_percent']){
     const l=labels.get(key);if(l)basic.append(l);
   }
-  const hint=el('p');hint.className='muted';builder.append(el('h3','Primary effect'),basic,hint);
+  const hint=el('p');hint.className='muted';builder.append(el('h3',isWeapon?'Weapon hit effect':'Primary effect'),basic,hint);
+  if(labels.get('status_effect_slug')){labels.get('status_effect_slug').hidden=true;put('status_effect_slug',null);}
   function updatePrimary(){
     const effect=get('effect_type');
     const selectedTags=get('allowed_weapon_tags');for(const tag of selectedTags)if(![...tagPicker.options].some(o=>o.value===tag))tagPicker.add(new Option(tag,tag));for(const option of tagPicker.options)option.selected=selectedTags.includes(option.value);
+    if(isWeapon){hint.textContent='Roll once per weapon attack that lands. Applications run before the attacking ability exploits afflictions. Follow-up effects use the actual hit results. Dodged attacks never trigger weapon effects.';return;}
     hint.textContent=effect==='damage'?'Blank multiplier uses fixed power. A multiplier uses actor power or equipped weapon damage.':effect==='heal'?'Power is a percentage of the recipient’s maximum HP.':effect==='guard'?'Guard reduction is a percentage for this round.':effect==='evade'?'Power is dodge chance; duration limits how long the next-attack dodge can wait.':effect==='affliction'?'Use this for status interactions or follow-up-only support/debuff abilities.':'Power and duration control the primary support effect.';
     for(const key of ['damage_multiplier','requires_weapon','allowed_weapon_tags'])if(labels.get(key))labels.get(key).hidden=effect!=='damage';
     if(labels.get('guard_percent'))labels.get('guard_percent').hidden=effect!=='guard';
     if(labels.get('duration_turns'))labels.get('duration_turns').hidden=!['buff','shield','evade'].includes(effect);
   }
-  controls.get('effect_type').addEventListener('change',updatePrimary);updatePrimary();
+  controls.get('effect_type')?.addEventListener('change',updatePrimary);updatePrimary();
+  const operationsBox=el('section');builder.append(operationsBox);
+  function renderOperations(){
+    operationsBox.replaceChildren(el('h3',isWeapon?'Affliction applications':'Affliction exploitation and recovery'));
+    const ops=get('affliction_ops')||[],afflictions=(catalogs.afflictions?.records||[]).map(r=>[r.values.slug,r.values.name]);
+    const save=()=>{put('affliction_ops',ops);commit();};
+    for(const [index,op] of ops.entries()){
+      const card=el('article');card.className='quest-card';const grid=el('div');grid.className='editor-fields';
+      const verbs=isWeapon?['apply']:['exploit','consume','detonate','amplify','spread','convert','cleanse','preserve','trigger'];
+      grid.append(label('Operation',select(verbs.map(v=>[v,v]),op.op,v=>{ops[index]={op:v,affliction:op.affliction,stacks:1};if(v==='convert')ops[index].resource='mana';save();renderOperations();})),label('Affliction',select(afflictions,op.affliction,v=>{op.affliction=v;save();})));
+      if(['apply','exploit','consume','detonate','spread','convert','cleanse'].includes(op.op))grid.append(label('Stacks',number(op.stacks??1,v=>{op.stacks=v;save();})));
+      if(['exploit','consume','detonate','amplify','trigger','convert'].includes(op.op))grid.append(label('Power per stack / trigger',number(op.power??1,v=>{op.power=v;save();})));
+      if(op.op==='preserve')grid.append(label('Rounds',number(op.rounds??1,v=>{op.rounds=v;save();})));
+      if(op.op==='trigger')grid.append(label('Crossing stack threshold',number(op.threshold??3,v=>{op.threshold=v;save();})));
+      if(['exploit','consume','trigger'].includes(op.op))grid.append(label('Result',select(['damage','heal','guard','resource'].map(v=>[v,v]),op.effect||'damage',v=>{op.effect=v;if(v==='resource')op.resource||='mana';save();renderOperations();})));
+      if(op.op==='convert')grid.append(label('Convert into',select([['','Resource'],...afflictions],op.into||'',v=>{if(v){op.into=v;delete op.resource;}else{delete op.into;op.resource='mana';}delete op.definition;save();renderOperations();})));
+      if(op.effect==='resource'||op.op==='convert'&&!op.into){const resource=el('input');resource.value=op.resource||'mana';resource.oninput=()=>{op.resource=resource.value;save();};grid.append(label('Resource name',resource));}
+      if(op.op==='spread'){const move=el('input');move.type='checkbox';move.checked=!!op.move;move.onchange=()=>{op.move=move.checked;save();};grid.append(label('Move stacks instead of copying',move));}
+      card.append(grid,button('Remove operation',()=>{ops.splice(index,1);save();renderOperations();}));operationsBox.append(card);
+    }
+    const add=button(isWeapon?'Add affliction application':'Add affliction interaction',()=>{ops.push({op:isWeapon?'apply':'exploit',affliction:afflictions[0][0],stacks:1});save();renderOperations();});add.disabled=!afflictions.length||ops.length>=(isWeapon?16:32);operationsBox.append(add);
+  }
+  renderOperations();
   const chainBox=el('section'),rankBox=el('section');builder.append(chainBox,rankBox);
   function chain(){return get('effect_chain')||[];}
   function modifierDials(){const choices=new Map(Object.entries(dialNames));for(const ability of [...(catalogs.abilities?.records||[]).map(r=>r.values),{name:'This ability',effect_chain:chain()}])for(const s of ability.effect_chain||[]){if(s.effect==='modifier'){choices.set('modifier:'+s.id,`${s.id}: adjustment`);choices.set('duration:'+s.id,`${s.id}: active rounds`);}else choices.set('step:'+s.id,`${s.id}: amount / conversion`);}return [...choices];}
@@ -106,6 +131,7 @@ window.GameAbilityDesigner = function({fields, inputs, catalog, catalogs}) {
     const add=button('Add follow-up effect',()=>{let i=1;while(steps.some(s=>s.id==='effect_'+i))i++;steps.push({id:'effect_'+i,effect:'heal',recipient:'self',source:'damage_dealt',value:50,when:'on_damage',split:false});saveChain(steps);renderChain();renderRanks();});add.disabled=steps.length>=16;chainBox.append(add);
   }
   function renderRanks(){
+    if(isWeapon)return;
     rankBox.replaceChildren(el('h3','Rank upgrades'),el('p','Set only values that change at each rank. Empty values inherit the previous rank. Upgrades apply when the character next departs; an active adventure keeps its saved ability values.'));
     const upgrades=get('rank_upgrades')||{},ranks=[...(catalogs.ranks?.records||[])].sort((a,b)=>a.values.min_level-b.values.min_level);
     const dials=[...Object.entries(dialNames),...chain().flatMap(s=>s.effect==='modifier'?[['modifier:'+s.id,`Step ${s.id}: adjustment`],['duration:'+s.id,`Step ${s.id}: active rounds`]]:[['step:'+s.id,`Step ${s.id}: amount / conversion`]])];

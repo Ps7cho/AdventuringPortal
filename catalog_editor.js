@@ -22,7 +22,7 @@ window.GameCatalogEditor = function(api, onSaved) {
     dialog.append(el('h2',(create?'Create ':'Edit ')+catalog.replaceAll('_',' ')),el('p','Save updates the connected database. Review changes before saving. Existing encounter and raid snapshots keep their saved definitions.'));
     const fields=el('div');fields.className='editor-fields';
     const inputs=new Map();
-    const references={status_effect_slug:'afflictions',weapon_type_slug:'weapon_types',required_rank:'ranks',enemy_slug:'enemies',ability_id:'abilities',orb_slug:'consumables',essence_slug:'essences',consumable_slug:'consumables',enemy_type:'entity_types',village_slug:'villages',shop_slug:'shops'};
+    const references={effect_pool_slug:'weapon_effect_pools',status_effect_slug:'afflictions',weapon_type_slug:'weapon_types',required_rank:'ranks',enemy_slug:'enemies',ability_id:'abilities',orb_slug:'consumables',essence_slug:'essences',consumable_slug:'consumables',enemy_type:'entity_types',village_slug:'villages',shop_slug:'shops'};
     for(const field of schema.fields){
       const label=el('label',field.name.replaceAll('_',' ') + (field.primary_key?' (key)':'') + (field.nullable?' · optional':''));
       let input;
@@ -90,12 +90,14 @@ window.GameCatalogEditor = function(api, onSaved) {
         }
       }
       function consumableDrop(item,weight=1,quantity=1){return {name:item?.name||'Loot item',consumable_slug:item?.slug||'',quantity:Number(quantity)||1,weight:Number(weight)||1};}
-      function weaponDrop(item,weight=1){return {name:item?.name||'Weapon',weapon_type_slug:item?.weapon_type_slug||'',base_damage:item?.base_damage||1,quantity:1,weight:Number(weight)||1};}
+      function weaponDrop(item,weight=1){return {name:item?.name||'Weapon',weapon_type_slug:item?.weapon_type_slug||'',weapon_definition_slug:item?.slug||null,base_damage:item?.base_damage||1,quantity:1,weight:Number(weight)||1};}
       function addDefaultDrop(tier){if(consumables.length)tier.drops.push(consumableDrop(consumables[0]));else if(weapons.length)tier.drops.push(weaponDrop(weapons[0]));}
       renderBuilder();const advanced=journeyInput.closest('.quest-advanced');fields.insertBefore(builder,advanced);
     }
-    const abilityBuilder=['abilities','ability_archetypes'].includes(catalog)&&window.GameAbilityDesigner
+    const abilityBuilder=['abilities','ability_archetypes','weapon_effects'].includes(catalog)&&window.GameAbilityDesigner
       ? GameAbilityDesigner({fields,inputs,catalog,catalogs}) : null;
+    const poolBuilder=catalog==='weapon_effect_pools'&&window.GameWeaponPoolDesigner?GameWeaponPoolDesigner({fields,inputs,catalogs}):null;
+    if(inputs.has('effect_pool_slug'))fields.append(el('p',catalog==='weapon_definitions'?'An empty pool inherits the weapon type’s pool. Choose a pool with zero chance to force plain weapons.':'An empty pool generates plain weapons.'));
     const error=el('p');error.role='alert';
     const review=el('div');review.setAttribute('aria-live','polite');
     const actions=el('div');actions.className='editor-actions';
@@ -133,7 +135,7 @@ window.GameCatalogEditor = function(api, onSaved) {
       if(catalog==='ability_archetypes'&&!Array.isArray(values.definition?.affliction_ops||[]))throw new Error('Worldsmith did not prepare the archetype affliction operations as an array. Refresh the page and reopen the duplicate.');
       return {catalog,key:Object.fromEntries(schema.fields.filter(f=>f.primary_key).map(f=>[f.name,values[f.name]])),values,create,expected_revision:create?null:record.revision};
     }
-    function lock(value){busy=value;validate.disabled=cancel.disabled=value;if(abilityBuilder)abilityBuilder.disabled=value;for(const field of schema.fields)inputs.get(field.name).disabled=value || field.immutable&&!create;save.disabled=value||!reviewed;}
+    function lock(value){busy=value;validate.disabled=cancel.disabled=value;if(abilityBuilder)abilityBuilder.disabled=value;if(poolBuilder)poolBuilder.disabled=value;for(const field of schema.fields)inputs.get(field.name).disabled=value || field.immutable&&!create;save.disabled=value||!reviewed;}
     validate.onclick=async()=>{
       error.textContent='';reviewed=null;lock(true);
       try{

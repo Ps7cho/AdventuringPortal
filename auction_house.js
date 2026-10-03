@@ -61,7 +61,7 @@ window.GameAuctionHouse = ({api}) => {
     for(const row of rows) {
       const card=node('article','');card.className='market-card';
       card.append(node('h3',row.item.name+' ? '+row.quantity),node('p',row.mode==='fixed'?'Fixed price: '+row.price+' gold':'Highest bid: '+row.bid+' gold ? Next bid: '+row.minimum_bid+' gold'),node('small','Seller: '+row.seller+' ? '+row.status+(row.my_bid?' ? Your bid':'')));
-      if(row.item.item_type==='weapon')card.append(node('p',row.item.base_damage+' damage ? '+row.item.required_rank+' rank ? '+row.item.tags.join(', ')));
+      if(row.item.item_type==='weapon'){card.append(node('p',row.item.base_damage+' damage ? '+row.item.required_rank+' rank ? '+row.item.tags.join(', ')));for(const effect of row.item.effects||[])card.append(node('p',effect.name+' · '+effect.proc_chance_percent+'% on hit'));}
       else if(row.item.item_type==='gear')card.append(node('p',row.item.slot+' ? '+row.item.required_rank+' rank ? '+Object.entries(row.item.bonuses).map(([k,v])=>k+' +'+v).join(', ')));
       else if(row.item.description)card.append(node('p',row.item.description));
       card.append(node('p',(row.status==='open'?'Ends ':'Deadline ')+new Date(row.expires_at).toLocaleString()));
