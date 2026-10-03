@@ -119,11 +119,13 @@ progress::-webkit-progress-bar { background:#273345; border-radius:10px; } progr
 @media(max-width:720px) {
 .game-menu main { padding:16px; }.game-menu main>header h1 { font-size:20px; }.game-menu .account-strip { margin-left:0; }
 .game-menu .menu-shell { display:block;margin-top:12px; }
-.game-menu #game>.menu-shell { height:calc(100dvh - 150px);min-height:420px; }
+.game-menu #game>.menu-shell { display:flex;flex-direction:column;height:calc(100dvh - 150px);min-height:420px; }
 .game-menu .menu-shell>.tabs { flex-direction:row;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;padding:10px;border-right:0;border-bottom:1px solid var(--workspace-edge); }
+.game-menu #game>.menu-shell>.tabs { flex:0 0 auto; }
 .game-menu .menu-shell>.tabs button { flex:0 0 auto;font-size:13px;padding:10px 12px; }
 .game-menu .menu-shell>.tabs button[aria-selected=true] { box-shadow:inset 0 -2px var(--workspace-gold); }
 .game-menu .menu-shell>.tab-panel { max-height:calc(100% - 59px);padding:18px 14px; }
+.game-menu #game>.menu-shell>.tab-panel { flex:1 1 auto;max-height:none; }
 .game-menu #panel-worldsmith,.game-menu #panel-character { padding:0; }
 .game-menu .play-lobby { display:flex;flex-direction:column;gap:24px; }
 .game-menu .deployment { order:-1;padding:0;border:0;width:100%; }
@@ -162,12 +164,18 @@ progress::-webkit-progress-bar { background:#273345; border-radius:10px; } progr
 
 @media(max-width:720px) {
 .workspace-heading { align-items:stretch;flex-direction:column;padding:14px;gap:12px; }
+.workspace-heading>div:first-child>p:not(.eyebrow) { display:none; }
 .workspace-heading label { min-width:0;width:100%; }
 .character-workspace-controls{min-width:0;width:100%}
 .character-workspace-empty { margin:14px;padding:30px 16px; }
 #roster .adventurer-card { grid-template-columns:1fr auto; }
 .embedded-character #identity-strip { padding:10px 14px; }
 .embedded-character #sheet>.menu-shell { margin:0; }
+}
+@media(max-width:720px) and (max-height:700px) {
+.workspace-heading { padding:8px 12px; }
+.workspace-heading>div:first-child { display:none; }
+.embedded-character #identity-strip { padding:6px 12px; }
 }
 .tabs { display:flex; gap:5px; padding:8px 0; border-bottom:1px solid var(--line); margin-bottom:18px; flex-wrap:wrap; }
 .tabs button { background:transparent; color:var(--muted); border-color:transparent; padding:10px 16px; }
