@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Mosswood Village</title>
-  <link rel="stylesheet" href="./ui.css?v=gauntlet-policy3">
+  <link rel="stylesheet" href="./ui.css?v=mobile-nav1">
 </head>
 <body>
 <main>
@@ -23,7 +23,7 @@
   <p id="error" role="alert"></p>
   <div id="game" hidden>
   <section class="row"><button id="account-open" type="button"><strong id="account-name"></strong></button><button id="logout">Log Out</button></section>
-  <section id="account-page" class="account-page"><p class="eyebrow">ACCOUNT</p><h2>Account settings</h2><p id="account-identity"></p><section class="account-provider"><h3>Discord</h3><p id="discord-link-status">Checking Discord connection...</p><button id="discord-link" type="button">Link Discord account</button><button id="discord-unlink" type="button" hidden>Unlink Discord account</button><p id="discord-link-message" role="status"></p></section></section>
+  <section id="account-page" class="account-page"><p class="eyebrow">ACCOUNT</p><h2>Account settings</h2><p id="account-identity"></p><p><a href="#" data-api-docs>API Docs</a></p><section class="account-provider"><h3>Discord</h3><p id="discord-link-status">Checking Discord connection...</p><button id="discord-link" type="button">Link Discord account</button><button id="discord-unlink" type="button" hidden>Unlink Discord account</button><p id="discord-link-message" role="status"></p></section></section>
   <section>
     <form id="create" class="row"><input id="name" aria-label="Adventurer name" placeholder="Adventurer name" required maxlength="80"><button>Create Adventurer</button></form>
     <div id="roster"></div>
@@ -60,9 +60,9 @@
   <section><h2>Turn Events</h2><ol id="log" aria-live="polite"></ol></section>
   </div>
 </main>
-<script src="./ui.js?v=afflictions1"></script>
+<script src="./ui.js?v=mobile-nav1"></script>
 <script src="./news.js?v=equipment1"></script>
-<script src="./lobby.js?v=global-character2"></script>
+<script src="./lobby.js?v=mobile-nav1"></script>
 <script src="./journey_ui.js?v=global-character2"></script>
 <script src="./config.js?v=20260913-village1"></script>
 <script src="./api.js?v=20260913-village1"></script>
@@ -73,6 +73,6 @@
 <script src="./catalog_editor.js?v=armor-passives1"></script>
 <script src="./debug.js?v=armor-passives1"></script>
 <script src="./gauntlet.js?v=ability-triggers1"></script>
-<script src="./village.js?v=ability-triggers1"></script>
+<script src="./village.js?v=mobile-nav1"></script>
 </body>
 </html>

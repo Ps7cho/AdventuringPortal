@@ -1,4 +1,4 @@
-document.querySelector('[data-api-docs]').href = GameApi.docsUrl;
+document.querySelectorAll('[data-api-docs]').forEach(link=>link.href=GameApi.docsUrl);
 const $ = (id) => document.getElementById(id);
 let encounter = null;
 const liveStatus=document.createElement('small'); liveStatus.id='encounter-live-status'; liveStatus.setAttribute('role','status'); $('status').after(liveStatus);
@@ -439,7 +439,7 @@ const villageTabs=GameUI.tabs(villageHost,[
   {key:'gauntlet',label:'Gauntlet',nodes:[gauntletPanel]},
   {key:'encounter',label:'Encounter',nodes:[noEncounter,$('combat'),$('log').closest('section')]},
   {key:'bestiary',label:'Bestiary & Testing',nodes:[bestiary]}
-]);
+],undefined,{mobileNav:{label:'Village navigation',primary:['home','journeys','character','gauntlet'],icons:{home:'home',journeys:'map',character:'person',gauntlet:'shield'}}});
 new MutationObserver(()=>{if($('tab-auction-house').getAttribute('aria-selected')==='true')auctionPanel.refresh();}).observe($('tab-auction-house'),{attributes:true,attributeFilter:['aria-selected']});
 new MutationObserver(()=>{if($('tab-shop')?.getAttribute('aria-selected')==='true')refreshShop();}).observe($('tab-shop'),{attributes:true,attributeFilter:['aria-selected']});
 new MutationObserver(()=>{if($('tab-worldsmith')?.getAttribute('aria-selected')==='true')developerPanel.refresh();}).observe($('tab-worldsmith'),{attributes:true,attributeFilter:['aria-selected']});

@@ -294,7 +294,7 @@ const characterTabController=GameUI.tabs(characterTabs,[
   {key:'gear',label:'Equipment',nodes:[$('inventory-workspace'),$('orb-status')]},
   {key:'abilities',label:'Abilities',nodes:[$('loadout').closest('section'),$('abilities').closest('section'),$('essence-section'),$('skills').closest('section')]},
   {key:'friends',label:'Friends',nodes:[$('friends-directory'),$('copy-invite').closest('section')]}
-]);
+],undefined,{mobileNav:{label:'Character navigation',icons:{overview:'person',attributes:'spark',gear:'shield',abilities:'bolt',friends:'people'}}});
 GameUI.hint($('long-rest'),'Rest in the village to restore health, clear status effects, and recover cooldowns. Available outside active adventures.');
 GameUI.hint($('copy-invite'),'Copy an invitation to share with friends off platform.');
 load().then(()=>villageLive.watch({id})).catch(error => { $('loading').hidden = true; $('error').textContent = error.message; });

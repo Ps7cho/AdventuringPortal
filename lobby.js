@@ -36,9 +36,10 @@ window.GameLobby = ({roster,enemy,length,start,account,onSelection,openCharacter
 /* Keeps the complete character sheet inside the primary game workspace. */
 window.GameCharacterWorkspace = ({onSelect,recruit}={}) => {
   const root=document.createElement('section');root.className='character-workspace';
-  root.innerHTML=`<header class="workspace-heading"><div><p class="eyebrow">ADVENTURER RECORD</p><h2>Character</h2><p>Manage progression, equipment, abilities, essences, and friends without leaving the village.</p></div><div class="character-workspace-controls"><label>Adventurer<select data-character-select></select></label><div data-character-recruit></div></div></header><div class="character-workspace-empty">Create a living adventurer above to open a character record.</div><iframe data-character-frame title="Character sheet" hidden></iframe>`;
-  const select=root.querySelector('[data-character-select]'),frame=root.querySelector('[data-character-frame]'),empty=root.querySelector('.character-workspace-empty');
+  root.innerHTML=`<header class="workspace-heading"><div><p class="eyebrow">ADVENTURER RECORD</p><h2>Character</h2><p>Manage progression, equipment, abilities, essences, and friends without leaving the village.</p></div><div class="character-workspace-controls"><label>Adventurer<select data-character-select></select></label><button type="button" class="character-recruit-toggle" data-character-create-toggle aria-expanded="false">New</button><div data-character-recruit></div></div></header><div class="character-workspace-empty">Create a living adventurer above to open a character record.</div><iframe data-character-frame title="Character sheet" hidden></iframe>`;
+  const select=root.querySelector('[data-character-select]'),frame=root.querySelector('[data-character-frame]'),empty=root.querySelector('.character-workspace-empty'),createToggle=root.querySelector('[data-character-create-toggle]');
   if(recruit)root.querySelector('[data-character-recruit]').append(recruit);
+  createToggle.onclick=()=>{const open=root.classList.toggle('creating');createToggle.setAttribute('aria-expanded',String(open));if(open)recruit?.querySelector('input')?.focus();};
   let heroes=[],selected=null,section='overview';
   function show(id,tab='overview'){
     const hero=heroes.find(row=>row.id===id);if(!hero)return;
