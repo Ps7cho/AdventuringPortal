@@ -181,8 +181,10 @@ progress::-webkit-progress-bar { background:#273345; border-radius:10px; } progr
 .embedded-character #identity-strip { padding:6px 12px; }
 }
 .mobile-nav,.mobile-nav-sheet,.mobile-nav-scrim,.studio-library-toggle,.studio-library-filter,.studio-library-scrim,.studio-back { display:none; }
+.pull-refresh-indicator{position:fixed;z-index:120;top:8px;left:50%;transform:translateX(-50%);padding:10px 16px;border:1px solid #806b3d;border-radius:24px;background:#26313b;color:#f4d78e;box-shadow:0 8px 24px #0008;font-size:13px;font-weight:700;pointer-events:none;white-space:nowrap}
 .studio-library-drawer { display:flex;flex:1 1 auto;min-height:0; }
 @media(max-width:720px) {
+.game-menu .tab-panel{overscroll-behavior-y:contain}
 .game-menu:has(#game:not([hidden])) { height:100dvh;overflow:hidden; }
 .game-menu:has(#game:not([hidden])) main { height:100dvh;max-height:100dvh;padding:0;display:flex;flex-direction:column; }
 .game-menu:has(#game:not([hidden])) main>header { display:none; }
@@ -347,15 +349,16 @@ details { background:var(--panel); border:1px solid var(--line); padding:12px 16
 
 /* Encounter actions reveal one decision at a time. */
 .encounter-options{border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:18px;background:var(--panel)}
+.player-glance{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px 12px;padding:10px 13px;border:1px solid #44745d;border-radius:9px;background:#1a3027;color:#ecf8ee}.player-glance strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.player-glance b{font-size:15px;color:#a8e9ba;white-space:nowrap}.player-glance progress{grid-column:1/-1;width:100%;height:8px;margin:0;accent-color:#72d894}.player-glance.health-danger{border-color:#a96958;background:#3a2423}.player-glance.health-danger b{color:#ffb29d}.player-glance.health-danger progress{accent-color:#ed806b}
 .encounter-decisions{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}.encounter-decisions:has(>button:not([hidden])){padding:10px;border:1px solid #735c32;background:#d2a95814}.encounter-decisions button{min-height:44px;margin:0!important}.battlefield-glance{display:flex;gap:8px;overflow-x:auto;scrollbar-width:thin;padding:2px 0 8px}.battlefield-glance-card{display:grid;grid-template-columns:1fr auto;gap:2px 8px;flex:0 0 clamp(185px,28vw,270px);padding:10px 12px;border:1px solid #405064;background:#1a2430;font-size:12px}.battlefield-glance-card strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.battlefield-glance-card span{color:#d4dfeb}.battlefield-glance-card small{grid-column:1/-1;color:#edb88d}.encounter-information,.encounter-log details{margin-top:12px}.encounter-information summary,.encounter-log summary{min-height:44px;display:flex;align-items:center}.encounter-information .combatants{margin-top:12px}
 .encounter-options label{display:grid;gap:5px}.encounter-options .quiet-action{margin-left:auto;background:transparent;color:var(--muted)}
 #action-prompt{color:var(--muted);margin-top:14px}.action-categories{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .action-categories button,.action-choices button{display:grid;gap:5px;text-align:left;padding:16px;min-width:0;overflow-wrap:anywhere}
 .action-choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:10px;margin-top:14px}
 #action-buttons{max-height:min(40dvh,340px);overflow-y:auto;overscroll-behavior:contain;padding-right:4px}
-#action-path{overflow-wrap:anywhere}#action-detail{margin-top:18px;max-width:680px}#action-description{white-space:pre-line;color:var(--muted)}
+#action-path{overflow-wrap:anywhere}.action-toolbar{position:sticky;top:0;z-index:2;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;padding:6px 0;background:var(--panel)}.action-toolbar button{min-height:44px;margin:0}.action-toolbar #action-use{background:#d2a958;color:#18202a;font-weight:750;max-width:min(50vw,260px);white-space:normal}#action-detail{margin-top:10px;max-width:680px}#action-description{white-space:pre-line;color:var(--muted)}
 #action-availability{font-size:.9rem;color:var(--muted);margin:14px 0}#action-use{min-width:160px}
-@media(max-width:560px){.encounter-options{padding:12px;margin-top:8px}.action-categories{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.action-categories button{min-height:54px;padding:8px;text-align:center;place-content:center;font-size:12px}.action-categories small{display:none}#action-detail .row{align-items:stretch}#action-detail label{width:100%}.encounter-decisions button{flex:1 1 100%}}
+@media(max-width:560px){.player-glance{position:sticky;top:0;z-index:5;padding:7px 11px}.encounter-options{padding:12px;margin-top:8px}.encounter-options>.row{margin-bottom:5px}#action-prompt{font-size:12px;margin:5px 0 9px}.action-categories{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.action-categories button{min-height:54px;padding:8px;text-align:center;place-content:center;font-size:12px}.action-categories small{display:none}.action-toolbar{top:57px}#action-path{font-size:12px}#action-detail .row{align-items:stretch}#action-detail label{width:100%}.encounter-decisions button{flex:1 1 100%}}
 
 /* Village landing page and quest entry points. */
 .home-welcome{padding:22px 0}.home-welcome h2{font-size:clamp(26px,4vw,40px);margin-bottom:10px}.home-welcome>p{max-width:620px;color:var(--muted)}

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Mosswood Village</title>
-  <link rel="stylesheet" href="./ui.css?v=quest-rank2">
+  <link rel="stylesheet" href="./ui.css?v=encounter-health1">
 </head>
 <body>
 <main>
@@ -35,13 +35,14 @@
     <div class="row"><h2 id="status"></h2><button id="refresh" title="Refresh encounter" aria-label="Refresh encounter">&#8635;</button></div>
     <p id="quest-progress"></p>
     <div class="encounter-decisions"><button id="continue" hidden>Continue Journey</button><button id="push-on" hidden>Press On</button><button id="return-village" hidden>Return to Village</button></div>
+    <div id="player-glance" class="player-glance" aria-label="Your adventurer's health"></div>
     <div id="battlefield-glance" class="battlefield-glance" aria-label="Enemies at a glance"></div>
     <div id="encounter-options" class="encounter-options">
       <div class="row"><label>Acting adventurer <select id="actor"></select></label><button id="wait" class="quiet-action">Wait</button></div>
       <p id="action-prompt">Choose an action type.</p>
       <div id="action-categories" class="action-categories" aria-label="Action types"></div>
       <div id="action-branch" hidden>
-        <div class="row"><button id="action-back" type="button">Back</button><strong id="action-path"></strong></div>
+        <div class="row action-toolbar"><button id="action-back" type="button">Back</button><strong id="action-path"></strong><button id="action-use" type="button" hidden>Use action</button></div>
         <div id="action-buttons" class="action-choices"></div>
         <div id="consumable-buttons" class="action-choices"></div>
         <div id="action-detail" hidden>
@@ -52,7 +53,6 @@
             <label id="ally-field" hidden>Ally target <select id="consumable-target"></select></label>
           </div>
           <p id="action-availability" role="status"></p>
-          <button id="action-use" type="button">Use action</button>
         </div>
       </div>
     </div>
@@ -61,7 +61,7 @@
   <section class="encounter-log"><details><summary>Turn Events</summary><ol id="log" aria-live="polite"></ol></details></section>
   </div>
 </main>
-<script src="./ui.js?v=mobile-nav1"></script>
+<script src="./ui.js?v=pull-refresh1"></script>
 <script src="./news.js?v=equipment1"></script>
 <script src="./lobby.js?v=mobile-nav1"></script>
 <script src="./journey_ui.js?v=departure-recovery1"></script>
@@ -74,6 +74,6 @@
 <script src="./catalog_editor.js?v=armor-passives1"></script>
 <script src="./debug.js?v=worldsmith-mobile1"></script>
 <script src="./gauntlet.js?v=decision-menus1"></script>
-<script src="./village.js?v=departure-recovery1"></script>
+<script src="./village.js?v=encounter-health1"></script>
 </body>
 </html>

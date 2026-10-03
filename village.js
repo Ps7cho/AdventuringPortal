@@ -206,6 +206,15 @@ function actionUnavailable(actor, choice) {
   return '';
 }
 function actionActor() { return encounter?.participants.find(p=>p.id===$('actor').value); }
+function renderPlayerGlance() {
+  const player=actionActor() || encounter?.participants.find(p=>p.id===window.GameSelectedCharacter.id) || encounter?.participants[0];
+  const glance=$('player-glance');glance.replaceChildren();if(!player)return;
+  const title=document.createElement('strong'),health=document.createElement('b'),bar=document.createElement('progress');
+  title.textContent=player.name;health.textContent=`${player.hp} / ${player.max_hp} HP`;
+  bar.max=Math.max(1,player.max_hp);bar.value=Math.max(0,player.hp);
+  glance.classList.toggle('health-danger',player.hp/player.max_hp<=0.3);
+  glance.append(title,health,bar);
+}
 function updateActionAvailability() {
   const actor=actionActor();
   for(const button of document.querySelectorAll('[data-choice]')) {
@@ -223,6 +232,7 @@ function updateActionAvailability() {
 }
 function renderActions() {
   const actor=actionActor();
+  renderPlayerGlance();
   const context=[encounter?.id,encounter?.turn,actor?.id].join(':');
   if(context!==actionContext) { actionBranch=null; selectedAction=null; actionContext=context; }
   const choices=encounterChoices(actor);
@@ -236,10 +246,11 @@ function renderActions() {
     const title=document.createElement('strong');title.textContent=label;
     const detail=document.createElement('small'); const count=choices.filter(c=>c.branch===key).length;
     detail.textContent=count ? `${count} available choices` : 'No choices yet';
-    button.append(title,detail);button.onclick=()=>{actionBranch=key;selectedAction=null;renderActions();$('action-back').focus();};
+    button.append(title,detail);button.onclick=()=>{actionBranch=key;selectedAction=null;renderActions();$('action-back').focus({preventScroll:true});};
     return button;
   }));
   $('action-path').textContent=actionBranch ? labels[actionBranch] + (selectedAction ? ' / '+selectedAction.name : '') : '';
+  $('action-use').hidden=!selectedAction;
   $('action-buttons').hidden=Boolean(selectedAction);
   $('consumable-buttons').hidden=true;
   const branchChoices=choices.filter(c=>c.branch===actionBranch);
@@ -247,7 +258,7 @@ function renderActions() {
     const button=document.createElement('button');button.type='button';button.dataset.choice=choice.kind+':'+choice.slug;
     const title=document.createElement('strong'); title.textContent=choice.name;
     button.append(title,document.createElement('small'));
-    button.onclick=()=>{selectedAction=choice;renderActions();$('action-use').focus();};return button;
+    button.onclick=()=>{selectedAction=choice;renderActions();$('action-use').focus({preventScroll:true});};return button;
   }));
   if(actionBranch && !branchChoices.length) $('action-buttons').textContent=actionBranch==='items' ? 'No usable items in your pocket dimension.' : 'No learned skills in this category.';
   $('action-detail').hidden=!selectedAction;
@@ -274,7 +285,7 @@ function renderActions() {
   updateActionAvailability();
 }
 $('action-back').onclick=()=>{if(selectedAction) selectedAction=null;else actionBranch=null;renderActions();
-  (actionBranch ? $('action-buttons').querySelector('button') || $('action-back') : $('action-categories').querySelector('button'))?.focus();};
+  (actionBranch ? $('action-buttons').querySelector('button') || $('action-back') : $('action-categories').querySelector('button'))?.focus({preventScroll:true});};
 $('combat-weapon').onchange=updateActionAvailability;
 $('action-use').onclick=()=>run(async()=>{
   const actor=actionActor(), choice=selectedAction;

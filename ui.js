@@ -1,5 +1,37 @@
 window.GameUI = (() => {
   const tooltip=document.createElement('div'); tooltip.id='tooltip'; tooltip.role='tooltip'; tooltip.hidden=true; document.body.append(tooltip);
+  const pullIndicator=document.createElement('div');pullIndicator.className='pull-refresh-indicator';pullIndicator.setAttribute('role','status');pullIndicator.hidden=true;document.body.append(pullIndicator);
+  let pull=null;
+  const pullEligible=target=>{
+    const panel=target.closest('.tab-panel');
+    if(!panel || panel.hidden || target.closest('input,select,textarea,[contenteditable],dialog,[draggable="true"]'))return false;
+    for(let node=target;node&&node!==panel.parentElement;node=node.parentElement){
+      if(node.scrollTop>1)return false;
+    }
+    return true;
+  };
+  document.addEventListener('touchstart',event=>{
+    if(!matchMedia('(max-width:720px)').matches || event.touches.length!==1 || !pullEligible(event.target))return;
+    pull={x:event.touches[0].clientX,y:event.touches[0].clientY,dist:0};
+  },{passive:true});
+  document.addEventListener('touchmove',event=>{
+    if(!pull || event.touches.length!==1)return;
+    const dx=event.touches[0].clientX-pull.x,dy=event.touches[0].clientY-pull.y;
+    if(dy<=8 || dy<Math.abs(dx)*1.4)return;
+    if(!pullEligible(event.target)){pull=null;pullIndicator.hidden=true;return;}
+    event.preventDefault();pull.dist=dy;
+    pullIndicator.textContent=dy>=80?'Release to refresh':'Pull down to refresh';
+    pullIndicator.hidden=false;
+    pullIndicator.style.transform=`translate(-50%, ${Math.min(dy/3,38)}px)`;
+  },{passive:false});
+  const endPull=event=>{
+    if(!pull)return;
+    const refresh=pull.dist>=80 && event.type==='touchend';pull=null;
+    if(refresh){pullIndicator.textContent='Refreshing…';window.top.location.reload();}
+    else pullIndicator.hidden=true;
+  };
+  document.addEventListener('touchend',endPull,{passive:true});
+  document.addEventListener('touchcancel',endPull,{passive:true});
   function hint(element,text) {
     element.setAttribute('aria-describedby','tooltip');
     const show=()=>{ tooltip.textContent=text; tooltip.hidden=false; const rect=element.getBoundingClientRect();
