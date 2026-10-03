@@ -206,12 +206,39 @@ function actionUnavailable(actor, choice) {
   return '';
 }
 function actionActor() { return encounter?.participants.find(p=>p.id===$('actor').value); }
+const afflictionColors={bleed:'#e56779',poison:'#8bd464',sin:'#b98bea',necrosis:'#65bbcb',burn:'#f3a653',holy:'#f0d881'};
+function afflictionColor(slug='') {
+  if(afflictionColors[slug])return afflictionColors[slug];
+  const hash=[...slug].reduce((value,char)=>(value*31+char.charCodeAt(0))%360,0);
+  return `hsl(${hash} 70% 66%)`;
+}
 function renderPlayerGlance() {
   const player=actionActor() || encounter?.participants.find(p=>p.id===window.GameSelectedCharacter.id) || encounter?.participants[0];
   const glance=$('player-glance');glance.replaceChildren();if(!player)return;
-  const title=document.createElement('strong'),health=document.createElement('b'),bar=document.createElement('progress');
+  const title=document.createElement('strong'),health=document.createElement('b'),bar=document.createElement('div'),fill=document.createElement('span');
   title.textContent=player.name;health.textContent=`${player.hp} / ${player.max_hp} HP`;
-  bar.max=Math.max(1,player.max_hp);bar.value=Math.max(0,player.hp);
+  const maxHp=Math.max(1,player.max_hp),minimumHp=encounter?.turn<(player.shield?.until_turn||0)?1:0;
+  let projectedHp=Math.max(0,player.hp),forecast=[],markerCount=0;
+  bar.className='player-health-track';bar.setAttribute('role','progressbar');bar.setAttribute('aria-valuemin','0');bar.setAttribute('aria-valuemax',String(player.max_hp));bar.setAttribute('aria-valuenow',String(player.hp));
+  fill.className='player-health-fill';fill.style.width=`${Math.min(100,player.hp/maxHp*100)}%`;bar.append(fill);
+  for(const status of player.statuses||[]){
+    const raw=status.periodic && status.periodic!=='damage'?0:Math.ceil((Number(status.damage||0)+Number(status.amplification||0))*Number(status.stacks||0)*(100-Number(status.resistance||0))/100);
+    const amount=Math.min(Math.max(0,projectedHp-minimumHp),Math.max(0,raw));
+    if(!amount){
+      const marker=document.createElement('span');marker.className='player-health-marker';marker.style.left=`${5+markerCount++*11}px`;
+      marker.style.setProperty('--effect-color',afflictionColor(status.slug));marker.title=GameUI.statusLabel(status);
+      bar.append(marker);continue;
+    }
+    projectedHp-=amount;forecast.push(`${status.name}: ${amount}`);
+    const segment=document.createElement('span');segment.className='player-health-effect';
+    segment.dataset.effect=status.slug||'';segment.dataset.damage=String(amount);
+    segment.style.setProperty('--effect-color',afflictionColor(status.slug));
+    segment.style.left=`${projectedHp/maxHp*100}%`;segment.style.width=`${amount/maxHp*100}%`;
+    segment.title=`${GameUI.statusLabel(status)} · ${amount} projected damage at round end`;
+    bar.append(segment);
+  }
+  bar.dataset.projectedDamage=String(Math.max(0,player.hp-projectedHp));
+  bar.setAttribute('aria-valuetext',`${player.hp} of ${player.max_hp} HP${forecast.length?`; next round: ${forecast.join(', ')} damage`:''}${markerCount?`; ${markerCount} other active effect${markerCount===1?'':'s'}`:''}`);
   glance.classList.toggle('health-danger',player.hp/player.max_hp<=0.3);
   glance.append(title,health,bar);
 }
