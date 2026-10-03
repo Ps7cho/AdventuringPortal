@@ -5,10 +5,10 @@ window.GameUI = (() => {
   const pullEligible=target=>{
     const panel=target.closest('.tab-panel');
     if(!panel || panel.hidden || target.closest('input,select,textarea,[contenteditable],dialog,[draggable="true"]'))return false;
-    for(let node=target;node&&node!==panel.parentElement;node=node.parentElement){
+    for(let node=target;node;node=node.parentElement){
       if(node.scrollTop>1)return false;
     }
-    return true;
+    return window.scrollY<=1 && (!document.scrollingElement || document.scrollingElement.scrollTop<=1);
   };
   document.addEventListener('touchstart',event=>{
     if(!matchMedia('(max-width:720px)').matches || event.touches.length!==1 || !pullEligible(event.target))return;

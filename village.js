@@ -7,7 +7,7 @@ let busy = false;
 let signedInUser = null;
 const savedKey = () => `encounter-id:${signedInUser.id}`;
 let enemyCatalog = [];
-let pendingVillage=null, villageHeroes=[], villageParties=[], friendFeedError=false;
+let pendingVillage=null, villageHeroes=[], villageParties=[], villageQuestTemplates=[], friendFeedError=false;
 function updateHome() { homePanel.update({parties:villageParties,heroes:villageHeroes,signedIn:Boolean(signedInUser),error:friendFeedError,encounterId:encounter?.state==='player_turn' ? encounter.id : null}); }
 const villageStatus=document.createElement('small'); villageStatus.id='village-live-status'; $('account-name').after(villageStatus);
 const villageLive=window.GameLive?.village?.(GameApi.baseUrl,()=>GameApi.liveToken?.(),data=>{
@@ -22,7 +22,7 @@ function applyVillage() {
   drawBulletin(data.contracts || []);
   if(JSON.stringify(villageHeroes)!==JSON.stringify(data.adventurers)) {
     villageHeroes=data.adventurers; $('roster').replaceChildren();villageHeroes.forEach(addHero);
-    characterWorkspace.update(villageHeroes);
+    characterWorkspace.update(villageHeroes);renderQuestCards();
     controls();
   }
   questLobby.update(villageHeroes,villageParties);
@@ -346,8 +346,7 @@ async function loadAccount(user) {
   if (enemyCatalog.some(e => e.slug === 'roadside-bandit')) $('enemy').value = 'roadside-bandit';
   renderEnemyDetails();
   drawBulletin(await api('/contracts'));
-  const templates=await api('/quest-templates');
-  for(const [host,kind] of [[journeyPanel,'quest'],[epicPanel,'epic'],[raidPanel,'raid']]) renderJourneyChoices(host,templates,template=>openQuestLobby(template),kind);
+  villageQuestTemplates=await api('/quest-templates');renderQuestCards();
   if(new URLSearchParams(location.search).has('village')) { localStorage.removeItem(savedKey()); encounter=null; $('combat').hidden=true; $('no-encounter').hidden=false; villageTabs.select('home');updateHome(); return; }
   const saved = new URLSearchParams(location.search).get('encounter') || localStorage.getItem(savedKey());
   if (saved) {
@@ -383,10 +382,16 @@ $('discord-unlink').onclick = () => run(async () => {
   $('discord-link-message').textContent = 'Discord account unlinked.';
 });
 let auctionPanel=null,playPanel=null;
-const characterWorkspace=GameCharacterWorkspace({recruit:$('create'),onSelect:id=>{playPanel?.selectCharacter(id);auctionPanel?.setAdventurer(id);questLobby?.update(villageHeroes,villageParties);updateQuestRankHeader();if(villageShopCatalog)drawVillageShop();controls();}});
+const characterWorkspace=GameCharacterWorkspace({recruit:$('create'),onSelect:id=>{playPanel?.selectCharacter(id);auctionPanel?.setAdventurer(id);questLobby?.update(villageHeroes,villageParties);updateQuestRankHeader();renderQuestCards();if(villageShopCatalog)drawVillageShop();controls();}});
 const openCharacter=(id,section='overview')=>{characterWorkspace.open(id,section);villageTabs.select('character');};
 playPanel=GameLobby({roster:$('roster'),enemy:$('enemy'),length:$('length'),start:$('start'),account:$('account-name').closest('section'),onSelection:controls,openCharacter});
 const journeyPanel=document.createElement('section'), epicPanel=document.createElement('section'), raidPanel=document.createElement('section');
+function renderQuestCards(){
+  if(!villageQuestTemplates.length)return;
+  const rankIndex=villageHeroes.find(row=>row.id===window.GameSelectedCharacter.id)?.rank_index ?? null;
+  for(const [host,kind] of [[journeyPanel,'quest'],[epicPanel,'epic'],[raidPanel,'raid']])
+    renderJourneyChoices(host,villageQuestTemplates,template=>openQuestLobby(template),kind,rankIndex);
+}
 const bulletinPanel=document.createElement('section');
 const questLobby=GameQuestLobby({api,
   startSolo:(entry,heroId,type)=>GameUI.rankedDeparture(accept=>type==='contract'
@@ -445,6 +450,28 @@ const questTabs=GameUI.tabs(questContent,[
   {key:'raids',label:'Raids',nodes:[raidPanel]},
   {key:'lobby',label:'Quest Lobby',nodes:[questLobby]}
 ]);
+const questSwipeKeys=['quest-list','bulletin','epics','raids'];
+let questSwipeStart=null;
+questContent.addEventListener('touchstart',event=>{
+  if(!matchMedia('(max-width:720px)').matches || event.touches.length!==1 || event.target.closest('input,select,textarea,dialog,[draggable="true"]'))return;
+  if(event.target.closest('button') && !event.target.closest('.tabs'))return;
+  questSwipeStart={x:event.touches[0].clientX,y:event.touches[0].clientY,time:Date.now()};
+},{passive:true});
+questContent.addEventListener('touchend',event=>{
+  if(!questSwipeStart || !event.changedTouches.length)return;
+  const swipe=questSwipeStart;questSwipeStart=null;
+  const dx=event.changedTouches[0].clientX-swipe.x,dy=event.changedTouches[0].clientY-swipe.y;
+  if(Math.abs(dx)<70 || Math.abs(dx)<Math.abs(dy)*1.5 || Date.now()-swipe.time>800)return;
+  const bar=questContent.querySelector(':scope > .tabs');
+  const current=bar.querySelector('[aria-selected="true"]')?.getAttribute('aria-controls')?.replace('panel-','');
+  const next=questSwipeKeys[questSwipeKeys.indexOf(current)+(dx<0?1:-1)];
+  if(!next || !questSwipeKeys.includes(current))return;
+  questTabs.select(next);
+  const button=bar.querySelector(`[aria-controls="panel-${next}"]`);
+  bar.scrollLeft=button.offsetLeft-bar.offsetLeft-(bar.clientWidth-button.clientWidth)/2;
+  $('panel-journeys').scrollTop=0;
+},{passive:true});
+questContent.addEventListener('touchcancel',()=>{questSwipeStart=null;},{passive:true});
 const questRankHeader=document.createElement('div');questRankHeader.className='quest-current-rank';questContent.prepend(questRankHeader);
 function updateQuestRankHeader(){
   const hero=villageHeroes.find(row=>row.id===window.GameSelectedCharacter.id);

@@ -9,7 +9,7 @@ function questRankBanner(rank, note='') {
   return banner;
 }
 
-function renderJourneyChoices(host, templates, depart, selectedKind = null) {
+function renderJourneyChoices(host, templates, depart, selectedKind = null, selectedRankIndex = null) {
   host.replaceChildren(); host.className='journey-browser';
   const playable=templates.filter(t=>t.journey?.stages?.length);
   const sections=[];
@@ -17,7 +17,13 @@ function renderJourneyChoices(host, templates, depart, selectedKind = null) {
   for(const [kind,label] of [['quest','Journeys'],['epic','Epics'],['raid','Raids']]) {
     if(selectedKind && kind!==selectedKind) continue;
     const routes=playable.filter(t=>t.journey.kind===kind);
-    if(kind==='raid') routes.sort((a,b)=>(a.journey.raid.cadence==='daily'?0:1)-(b.journey.raid.cadence==='daily'?0:1));
+    routes.sort((a,b)=>{
+      const distance=rank=>selectedRankIndex===null || rank==null ? 0 : Math.abs(rank-selectedRankIndex);
+      return distance(a.rank_index)-distance(b.rank_index)
+        || (b.rank_index??0)-(a.rank_index??0)
+        || (kind==='raid' ? (a.journey.raid.cadence==='daily'?0:1)-(b.journey.raid.cadence==='daily'?0:1) : 0)
+        || a.name.localeCompare(b.name);
+    });
     if(!routes.length)continue;
     const panel=document.createElement('div');
     const first=routes[0].journey;

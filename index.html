@@ -4,14 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Mosswood Village</title>
-  <link rel="stylesheet" href="./ui.css?v=encounter-health1">
+  <link rel="stylesheet" href="./ui.css?v=login-first1">
 </head>
 <body>
 <main>
   <header><h1>Mosswood Village</h1><a href="#" data-api-docs>API Docs</a></header>
-  <div id="public-home"></div>
   <section id="login-panel">
-    <h2>Account Login</h2>
+    <p class="eyebrow">WELCOME TO MOSSWOOD</p>
+    <h2>Log in to your adventure</h2>
+    <p class="login-intro">Continue your journey, or create an account to begin.</p>
     <form id="login-form" class="row">
       <label>Username <input id="username" autocomplete="username" minlength="3" maxlength="32" pattern="[a-zA-Z0-9_]+" required></label>
       <label>Password <input id="password" type="password" autocomplete="current-password" minlength="12" maxlength="128" required></label>
@@ -21,6 +22,7 @@
     <div class="auth-provider"><button id="discord-login" type="button">Continue with Discord</button><details><summary>Recover with Discord</summary><form id="discord-recovery-form"><label>New password <input id="discord-new-password" type="password" minlength="12" maxlength="128" required></label><button type="submit">Reset password</button></form><p id="discord-recovery-status" role="status"></p></details></div>
   </section>
   <p id="error" role="alert"></p>
+  <div id="public-home"></div>
   <div id="game" hidden>
   <section class="row"><button id="account-open" type="button"><strong id="account-name"></strong></button><button id="logout">Log Out</button></section>
   <section id="account-page" class="account-page"><p class="eyebrow">ACCOUNT</p><h2>Account settings</h2><p id="account-identity"></p><p><a href="#" data-api-docs>API Docs</a></p><section class="account-provider"><h3>Discord</h3><p id="discord-link-status">Checking Discord connection...</p><button id="discord-link" type="button">Link Discord account</button><button id="discord-unlink" type="button" hidden>Unlink Discord account</button><p id="discord-link-message" role="status"></p></section></section>
@@ -61,10 +63,10 @@
   <section class="encounter-log"><details><summary>Turn Events</summary><ol id="log" aria-live="polite"></ol></details></section>
   </div>
 </main>
-<script src="./ui.js?v=pull-refresh1"></script>
+<script src="./ui.js?v=quest-swipes1"></script>
 <script src="./news.js?v=equipment1"></script>
 <script src="./lobby.js?v=mobile-nav1"></script>
-<script src="./journey_ui.js?v=departure-recovery1"></script>
+<script src="./journey_ui.js?v=quest-swipes1"></script>
 <script src="./config.js?v=20260913-village1"></script>
 <script src="./api.js?v=departure-recovery1"></script>
 <script src="./auction_house.js?v=weapon-effects1"></script>
@@ -74,6 +76,6 @@
 <script src="./catalog_editor.js?v=armor-passives1"></script>
 <script src="./debug.js?v=worldsmith-mobile1"></script>
 <script src="./gauntlet.js?v=decision-menus1"></script>
-<script src="./village.js?v=encounter-health1"></script>
+<script src="./village.js?v=quest-swipes1"></script>
 </body>
 </html>
