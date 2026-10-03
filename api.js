@@ -39,7 +39,7 @@
       super(message); this.name = "ApiError"; this.status = status; this.code = code;
     }
   }
-  async function request(path, body, method) {
+  async function request(path, body, method, timeoutMs = 20000) {
     if (!path.startsWith("/") || path.startsWith("//") || path.includes("..")) {
       throw new ApiError("API paths must be relative to the configured endpoint.");
     }
@@ -50,7 +50,7 @@
     const login = path === "/auth/login" || path === "/auth/register";
     if (login) headers["X-Client-Auth"] = "bearer";
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 20000);
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const response = await fetch(base + path, {
         method: method || (body === undefined ? "GET" : "POST"), headers,
@@ -75,9 +75,9 @@
       return data;
     } catch (error) {
       if (error instanceof ApiError) throw error;
-      throw new ApiError(error.name === "AbortError"
-        ? "Request timed out. Refresh the current state before trying that action again."
-        : "Cannot reach the game server. Check your connection and the configured API address.");
+      throw error.name === "AbortError"
+        ? new ApiError("Request timed out. The game may still be processing it.", 0, "timeout")
+        : new ApiError("Cannot reach the game server. Check your connection and the configured API address.");
     } finally { clearTimeout(timeout); }
   }
   window.GameApi = Object.freeze({request, clearSession, consumeDiscordRedirect, baseUrl: base, ApiError, liveToken: token,

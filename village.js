@@ -36,8 +36,8 @@ function renderEnemyDetails() {
     <p>${Object.entries(enemy.attributes).map(([name, value]) => `${escape(name)}: ${value}`).join(' | ')}</p>`;
 }
 const escape = (value) => String(value).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-async function api(path, body) {
-  try { return await GameApi.request(path, body, arguments[2]); }
+async function api(path, body, method, timeoutMs) {
+  try { return await GameApi.request(path, body, method, timeoutMs); }
   catch (error) { if (error.status === 401 && signedInUser) showLoggedOut(); throw error; }
 }
 async function run(task) {
@@ -247,7 +247,7 @@ function renderActions() {
     const button=document.createElement('button');button.type='button';button.dataset.choice=choice.kind+':'+choice.slug;
     const title=document.createElement('strong'); title.textContent=choice.name;
     button.append(title,document.createElement('small'));
-    button.onclick=()=>{selectedAction=choice;renderActions();$('action-back').focus();};return button;
+    button.onclick=()=>{selectedAction=choice;renderActions();$('action-use').focus();};return button;
   }));
   if(actionBranch && !branchChoices.length) $('action-buttons').textContent=actionBranch==='items' ? 'No usable items in your pocket dimension.' : 'No learned skills in this category.';
   $('action-detail').hidden=!selectedAction;
@@ -379,9 +379,15 @@ const journeyPanel=document.createElement('section'), epicPanel=document.createE
 const bulletinPanel=document.createElement('section');
 const questLobby=GameQuestLobby({api,
   startSolo:(entry,heroId,type)=>GameUI.rankedDeparture(accept=>type==='contract'
-    ? api('/contracts/'+entry.id+'/accept',{adventurer_ids:[heroId],accept_rank_risk:accept})
-    : api('/encounters',{adventurer_ids:[heroId],template_slug:entry.slug,accept_rank_risk:accept})),
+    ? api('/contracts/'+entry.id+'/accept',{adventurer_ids:[heroId],accept_rank_risk:accept},undefined,60000)
+    : api('/encounters',{adventurer_ids:[heroId],template_slug:entry.slug,accept_rank_risk:accept},undefined,60000)),
   onEncounter:data=>render(data),
+  recoverDeparture:async(heroId,partyId)=>{
+    const [heroes,parties]=await Promise.all([api('/adventurers'),api('/parties')]);
+    villageHeroes=heroes;villageParties=parties;characterWorkspace.update(heroes);questLobby.update(heroes,parties);updateHome();
+    const active=heroes.find(row=>String(row.id)===String(heroId))?.active_encounter_id || parties.find(row=>String(row.id)===String(partyId))?.active_encounter_id;
+    return active?api('/encounters/'+encodeURIComponent(active)):null;
+  },
   refreshParties:async()=>{villageParties=await api('/parties');friendFeedError=false;questLobby.update(villageHeroes,villageParties);updateHome();return villageParties;},
   goBack:kind=>questTabs.select(kind==='contract'?'bulletin':kind==='epic'?'epics':kind==='raid'?'raids':'quest-list')
 });
