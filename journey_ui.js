@@ -18,8 +18,10 @@ function renderJourneyChoices(host, templates, depart, selectedKind = null) {
     for(const template of routes) {
       const rules=template.journey, raid=rules.raid;
       const card=document.createElement('article');card.className='journey-card';
-      const badges=make('p',raid ? raid.cadence.toUpperCase() + ' RAID' : (rules.required_rank || 'iron').toUpperCase() + ' RANK','eyebrow');
-      card.append(badges,make('h3',template.name),make('p',template.region,'muted'));
+      const rank=(rules.required_rank||'iron').toLowerCase(),banner=make('div','','quest-rank-banner');banner.dataset.rank=rank;
+      banner.append(make('span','Required rank'),make('strong',rank.toUpperCase()));
+      card.append(banner,make('h3',template.name),make('p',template.region,'muted'));
+      if(raid)card.append(make('small',raid.cadence.toUpperCase()+' RAID','quest-raid-cadence'));
       if(raid?.rotation) card.append(make('small','Resets ' + new Date(raid.rotation.resets_at).toLocaleString() + ' (your time)','muted'));
       if(raid?.rotation) card.append(raidCompletionBadge(template.name, raid.rotation));
       const button=make('button','Review quest & gather party');
@@ -41,11 +43,11 @@ function renderJourneyChoices(host, templates, depart, selectedKind = null) {
 
 window.GameQuestLobby = ({api,startSolo,onEncounter,refreshParties,goBack}) => {
   const root=document.createElement('section');root.className='quest-lobby';
-  root.innerHTML=`<header class="quest-lobby-heading"><div><button type="button" data-lobby-back>&larr; All quests</button><p class="eyebrow" data-lobby-kind>QUEST LOBBY</p><h2 data-lobby-title>Select a quest</h2><p data-lobby-region></p></div></header>
+  root.innerHTML=`<header class="quest-lobby-heading"><div><button type="button" data-lobby-back>&larr; All quests</button><p class="eyebrow" data-lobby-kind>QUEST LOBBY</p><h2 data-lobby-title>Select a quest</h2><p data-lobby-region></p><div data-lobby-rank class="quest-rank-banner"></div></div></header>
     <div class="quest-lobby-layout"><article class="quest-lobby-brief" data-lobby-brief></article><aside class="quest-lobby-party"><p class="eyebrow">EXPEDITION PARTY</p><h3>Gather your party</h3>
-      <p>Your adventurer: <strong data-lobby-hero></strong></p><label>Departure group<select data-lobby-party></select></label>
-      <div data-lobby-roster class="quest-lobby-roster"></div><p data-lobby-plan class="quest-lobby-plan"></p><label data-lobby-risk-wrap><input type="checkbox" data-lobby-risk> Accept above-rank risk</label>
+      <p>Your adventurer: <strong data-lobby-hero></strong></p>
       <div class="quest-lobby-actions"><button type="button" data-lobby-propose>Choose this quest</button><button type="button" data-lobby-ready>Ready up</button><button type="button" data-lobby-invite>Copy party invite</button><button type="button" data-lobby-depart>Depart</button></div>
+      <label>Departure group<select data-lobby-party></select></label><div data-lobby-roster class="quest-lobby-roster"></div><p data-lobby-plan class="quest-lobby-plan"></p><label data-lobby-risk-wrap><input type="checkbox" data-lobby-risk> Accept above-rank risk</label>
       <label data-lobby-code-wrap hidden>Party invite code<input data-lobby-code readonly></label>
       <details class="quest-lobby-gather"><summary>Create or join a party</summary><form data-lobby-create><label>Party name<input name="name" maxlength="80" placeholder="Expedition name"></label><button>Create party</button></form><form data-lobby-join><label>Invite code<input name="code" maxlength="64" required placeholder="Paste invite code"></label><button>Join party</button></form></details>
       <p data-lobby-status role="status"></p></aside></div>`;
@@ -54,7 +56,7 @@ window.GameQuestLobby = ({api,startSolo,onEncounter,refreshParties,goBack}) => {
   const propose=get('[data-lobby-propose]'),ready=get('[data-lobby-ready]'),invite=get('[data-lobby-invite]'),depart=get('[data-lobby-depart]'),risk=get('[data-lobby-risk]'),codeWrap=get('[data-lobby-code-wrap]'),code=get('[data-lobby-code]');
   let entry=null,type='template',heroes=[],parties=[],busy=false,inviteCache=new Map();
   root.querySelectorAll('button').forEach(button=>button.dataset.localControl='');
-  const selectedHeroId=()=>window.GameSelectedCharacter.id;
+  const selectedHeroId=()=>heroes.find(row=>String(row.id)===String(window.GameSelectedCharacter.id))?.id || heroes[0]?.id || null;
   const hero=()=>heroes.find(row=>String(row.id)===selectedHeroId());
   const party=()=>parties.find(row=>String(row.id)===partySelect.value);
   const partyOptions=()=>parties.filter(row=>row.members.some(member=>member.is_yours && String(member.id)===selectedHeroId()));
@@ -88,13 +90,17 @@ window.GameQuestLobby = ({api,startSolo,onEncounter,refreshParties,goBack}) => {
   }
   function renderParty(){
     const selected=party(),member=selected?.members.find(row=>row.is_yours&&String(row.id)===selectedHeroId()),matches=selectionMatches(selected);
+    const chosen=hero(),required=(type==='contract'?entry?.required_rank:entry?.journey?.required_rank)||'iron',rankBanner=get('[data-lobby-rank]');
+    rankBanner.dataset.rank=required.toLowerCase();rankBanner.replaceChildren(make('span','Required rank'),make('strong',required.toUpperCase()),make('small',chosen?`${chosen.name}: ${chosen.rank} rank`:'No available adventurer'));
+    heroSelect.textContent=chosen?`${chosen.name} · ${chosen.rank} rank`:'Select a living adventurer in Character';
     roster.replaceChildren();
     if(!selected){const card=make('article','','quest-lobby-member');card.append(make('span','','presence-dot online'),make('strong',hero()?.name||'Choose an adventurer'),make('small','Solo · Ready'));roster.append(card);}
     else for(const row of selected.members){const card=make('article','','quest-lobby-member');card.append(make('span','',`presence-dot ${row.is_online?'online':'offline'}`),make('strong',row.name),make('small',`${row.player||'Player'} · ${row.is_online?'Online':'Offline'} · ${!row.is_alive?'Fallen':row.is_ready?'Ready':'Not ready'}${row.is_leader?' · Leader':''}`));roster.append(card);}
     get('[data-lobby-plan]').textContent=!selected?'Solo departure uses only the selected adventurer.':!selected.selection?'No quest has been proposed to this party.':`Party selection: ${selected.selection.name}${matches?' · This quest':' · Different quest'}`;
     get('[data-lobby-risk-wrap]').hidden=!selected||!selected.is_leader;propose.hidden=!selected||!selected.is_leader||matches;ready.hidden=!selected||!matches||!member||Boolean(selected.active_encounter_id);invite.hidden=!selected||!selected.is_leader;depart.hidden=Boolean(selected&&!selected.is_leader);
     propose.disabled=busy||!entry;ready.disabled=busy||!entry||!member?.is_alive;ready.textContent=member?.is_ready?'Cancel ready':'Ready up';invite.disabled=busy;
-    depart.disabled=busy||!entry||!hero()||Boolean(selected&&(!matches||!selected.all_ready||selected.active_encounter_id));depart.textContent=selected?'Depart with party':'Depart solo';
+    depart.disabled=busy||!entry||!chosen||chosen.health<=0||Boolean(chosen.active_encounter_id)||Boolean(selected&&(!matches||!selected.all_ready||selected.active_encounter_id));depart.textContent=selected?'Depart with party':'Depart solo';
+    if(chosen?.active_encounter_id)status.textContent=`${chosen.name} is already in an adventure. Finish or return before starting another quest.`;
     get('[data-lobby-create]').querySelector('button').disabled=busy||!hero();get('[data-lobby-join]').querySelector('button').disabled=busy||!hero();
   }
   async function task(work){if(busy)return;busy=true;status.textContent='';renderParty();try{await work();}catch(error){status.textContent=error.message;}finally{busy=false;renderParty();}}
@@ -108,7 +114,7 @@ window.GameQuestLobby = ({api,startSolo,onEncounter,refreshParties,goBack}) => {
   get('[data-lobby-join]').onsubmit=event=>{event.preventDefault();task(async()=>{const form=event.currentTarget,joined=await api('/parties/join',{adventurer_id:selectedHeroId(),code:new FormData(form).get('code').trim()});form.reset();await sync(joined.id);status.textContent='Party joined. Review the proposed quest and ready up.';});};
   get('[data-lobby-back]').onclick=()=>goBack(type==='contract'?'bulletin':entry?.journey?.kind||'quest');
   root.open=(value,entryType='template')=>{entry=value;type=entryType;risk.checked=routeMatches(party())?Boolean(party().selection.accept_rank_risk):false;get('[data-lobby-kind]').textContent=type==='contract'?'RECOVERY CONTRACT LOBBY':`${entry.journey?.kind||'quest'} lobby`;get('[data-lobby-title]').textContent=entry.title||entry.name;get('[data-lobby-region]').textContent=entry.region||'';codeWrap.hidden=true;status.textContent='';renderBrief();renderParty();};
-  root.update=(rows,partyRows)=>{heroes=(rows||[]).filter(row=>row.is_alive&&row.health>0&&!row.active_encounter_id);parties=partyRows||[];heroSelect.textContent=hero()?.name||'Select a living adventurer in Character';syncPartySelect();renderParty();};
+  root.update=(rows,partyRows)=>{heroes=(rows||[]).filter(row=>row.is_alive);parties=partyRows||[];syncPartySelect();renderParty();};
   return root;
 };
 

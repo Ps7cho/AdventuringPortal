@@ -137,6 +137,12 @@ function render(data, pushed=false) {
     <div class="status-badges">${(p.statuses || []).map(s => `<span title="${escape(GameUI.statusHint(s))}">${escape(GameUI.statusLabel(s))}</span>`).join('')}${Object.entries(p.resources || {}).map(([name, amount]) => `<span>${escape(name)}: ${amount}</span>`).join('')}</div>
     ${Object.entries(p.status_resistances || {}).filter(([s,r]) => r > 0).map(([s,r]) => `<small class="muted">${escape(s)}: ${r === 100 ? 'immune' : r + '% resistant'}</small>`).join(' &middot; ')}
     </div>`).join('');
+  $('battlefield-glance').replaceChildren(...data.enemies.filter(enemy=>enemy.hp>0).map(enemy=>{
+    const card=document.createElement('div'),name=document.createElement('strong'),health=document.createElement('span'),intent=document.createElement('small');
+    card.className='battlefield-glance-card';name.textContent=enemy.name;health.textContent=`${enemy.hp}/${enemy.max_hp} HP`;
+    intent.textContent=enemy.next_move?`Next: ${enemy.next_move.name}`:'Next move unknown';
+    card.append(name,health,intent);return card;
+  }));
   const previous = $('actor').value;
   $('actor').replaceChildren(...data.participants.filter(p => data.pending_actor_ids.includes(p.id) && [...document.querySelectorAll('#roster input')].some(input => input.value === p.id)).map(p => new Option(p.name, p.id)));
   if ([...$('actor').options].some(o => o.value === previous)) $('actor').value = previous;
@@ -366,7 +372,7 @@ $('discord-unlink').onclick = () => run(async () => {
   $('discord-link-message').textContent = 'Discord account unlinked.';
 });
 let auctionPanel=null,playPanel=null;
-const characterWorkspace=GameCharacterWorkspace({recruit:$('create'),onSelect:id=>{playPanel?.selectCharacter(id);auctionPanel?.setAdventurer(id);questLobby?.update(villageHeroes,villageParties);if(villageShopCatalog)drawVillageShop();controls();}});
+const characterWorkspace=GameCharacterWorkspace({recruit:$('create'),onSelect:id=>{playPanel?.selectCharacter(id);auctionPanel?.setAdventurer(id);questLobby?.update(villageHeroes,villageParties);updateQuestRankHeader();if(villageShopCatalog)drawVillageShop();controls();}});
 const openCharacter=(id,section='overview')=>{characterWorkspace.open(id,section);villageTabs.select('character');};
 playPanel=GameLobby({roster:$('roster'),enemy:$('enemy'),length:$('length'),start:$('start'),account:$('account-name').closest('section'),onSelection:controls,openCharacter});
 const journeyPanel=document.createElement('section'), epicPanel=document.createElement('section'), raidPanel=document.createElement('section');
@@ -386,7 +392,14 @@ $('discord-recovery-form').onsubmit = event => {
   sessionStorage.setItem('discord-recovery-password', password);
   location.href = GameApi.baseUrl + '/auth/discord/login?purpose=recovery';
 };
-const openQuestLobby=(entry,type='template')=>{questLobby.open(entry,type);questTabs.select('lobby');};
+const openQuestLobby=async(entry,type='template')=>{
+  questLobby.update(villageHeroes,villageParties);questLobby.open(entry,type);questTabs.select('lobby');
+  try {
+    const [freshHeroes,freshParties]=await Promise.all([api('/adventurers'),api('/parties')]);
+    villageHeroes=freshHeroes;villageParties=freshParties;
+    characterWorkspace.update(villageHeroes);questLobby.update(villageHeroes,villageParties);updateQuestRankHeader();
+  } catch(error) {$('error').textContent=error.message;}
+};
 const drawBulletin=GameBulletin(bulletinPanel,contract=>openQuestLobby(contract,'contract'));
 const bestiary=document.createElement('section'); bestiary.append(...villageArea.querySelectorAll('details'));
 const rosterStore=$('roster');rosterStore.hidden=true;$('game').append(rosterStore);
@@ -415,6 +428,16 @@ const questTabs=GameUI.tabs(questContent,[
   {key:'raids',label:'Raids',nodes:[raidPanel]},
   {key:'lobby',label:'Quest Lobby',nodes:[questLobby]}
 ]);
+const questRankHeader=document.createElement('div');questRankHeader.className='quest-current-rank';questContent.prepend(questRankHeader);
+function updateQuestRankHeader(){
+  const hero=villageHeroes.find(row=>row.id===window.GameSelectedCharacter.id);
+  questRankHeader.replaceChildren();
+  const label=document.createElement('span');label.textContent='CURRENT ADVENTURER';
+  const name=document.createElement('strong');name.textContent=hero?hero.name:'Choose a character';
+  const rank=document.createElement('b');rank.textContent=hero?`${hero.rank} rank`:'No rank selected';rank.dataset.rank=(hero?.rank||'none').toLowerCase();
+  questRankHeader.append(label,name,rank);
+}
+updateQuestRankHeader();
 auctionPanel=GameAuctionHouse({api});
 const villageShop=document.createElement('section');
 villageShop.innerHTML=`<style>.village-shop{--ink:#f2eee7;--muted:#9b9a94;--edge:#373a3c;--panel:#1b2022;--gold:#d7b474;color:var(--ink)}.village-shop-hero{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;padding:24px;border:1px solid var(--edge);background:linear-gradient(120deg,#252b2a,#171c1e);border-radius:7px}.village-shop-hero h2{font:500 30px Georgia,serif;margin:3px 0}.village-shop-hero p{color:var(--muted);font-size:12px;margin:0}.village-shop-kicker{color:var(--gold);font-size:10px;letter-spacing:.18em;text-transform:uppercase}.village-shop-controls{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}.village-shop-controls label{display:grid;gap:5px;font-size:10px;text-transform:uppercase}.village-shop-controls select{min-width:190px;background:#111618}.village-shop-controls button{border-radius:3px;background:transparent;color:var(--muted);border-color:var(--edge);font-size:12px}.village-shop-tabs{display:flex;gap:4px;margin:18px 0 12px;border-bottom:1px solid var(--edge)}.village-shop-tabs button{border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;color:var(--muted);padding:10px 14px;font-size:12px}.village-shop-tabs button[aria-selected=true]{color:var(--gold);border-bottom-color:var(--gold)}.village-shop-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}.village-shop-card{display:flex;flex-direction:column;min-height:150px;padding:15px;background:var(--panel);border:1px solid var(--edge);border-radius:5px}.village-shop-card h3{font:500 17px Georgia,serif;margin:8px 0 3px}.village-shop-card p,.village-shop-card small{font-size:11px;color:var(--muted);margin:0 0 14px}.village-shop-card footer{display:flex;justify-content:space-between;align-items:center;margin-top:auto}.village-shop-price{color:var(--gold);font-size:13px}.village-shop-status{min-height:20px;color:#8fc39a;font-size:12px}.village-shop-empty{padding:42px;text-align:center;color:var(--muted);border:1px dashed var(--edge)}@media(max-width:640px){.village-shop-hero{display:block;padding:18px}.village-shop-controls{margin-top:18px}.village-shop-controls select{min-width:0;width:100%}}</style><div class="village-shop"><div class="village-shop-hero"><div><p class="village-shop-kicker">Mosswood Exchange</p><h2>Village Shops</h2><p>Outfit your next expedition with supplies from local merchants.</p></div><div class="village-shop-controls"><label>Village<select data-shop-village></select></label><span>Shopping as <strong data-shop-hero>No character selected</strong></span><button data-shop-refresh type="button">Refresh stock</button></div></div><div class="village-shop-tabs" role="tablist"></div><p class="village-shop-status" data-shop-status role="status"></p><div class="village-shop-grid" data-shop-items></div></div>`;

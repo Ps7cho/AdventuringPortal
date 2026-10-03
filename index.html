@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Mosswood Village</title>
-  <link rel="stylesheet" href="./ui.css?v=worldsmith-mobile1">
+  <link rel="stylesheet" href="./ui.css?v=decision-menus1">
 </head>
 <body>
 <main>
@@ -33,9 +33,9 @@
   </section>
   <section id="combat" hidden>
     <div class="row"><h2 id="status"></h2><button id="refresh" title="Refresh encounter" aria-label="Refresh encounter">&#8635;</button></div>
-    <p id="encounter-id"></p>
-    <p id="quest-progress"></p><p id="stage-description"></p><p id="camp-description"></p><div id="group-loot" class="slot" hidden></div><button id="continue" hidden>Continue Journey</button><button id="push-on" hidden>Press On</button><button id="return-village" hidden>Return to Village</button>
-    <div id="combatants" class="combatants"></div>
+    <p id="quest-progress"></p>
+    <div class="encounter-decisions"><button id="continue" hidden>Continue Journey</button><button id="push-on" hidden>Press On</button><button id="return-village" hidden>Return to Village</button></div>
+    <div id="battlefield-glance" class="battlefield-glance" aria-label="Enemies at a glance"></div>
     <div id="encounter-options" class="encounter-options">
       <div class="row"><label>Acting adventurer <select id="actor"></select></label><button id="wait" class="quiet-action">Wait</button></div>
       <p id="action-prompt">Choose an action type.</p>
@@ -56,14 +56,15 @@
         </div>
       </div>
     </div>
+    <details class="encounter-information"><summary>Battlefield and journey details</summary><p id="encounter-id"></p><p id="stage-description"></p><p id="camp-description"></p><div id="group-loot" class="slot" hidden></div><div id="combatants" class="combatants"></div></details>
   </section>
-  <section><h2>Turn Events</h2><ol id="log" aria-live="polite"></ol></section>
+  <section class="encounter-log"><details><summary>Turn Events</summary><ol id="log" aria-live="polite"></ol></details></section>
   </div>
 </main>
 <script src="./ui.js?v=mobile-nav1"></script>
 <script src="./news.js?v=equipment1"></script>
 <script src="./lobby.js?v=mobile-nav1"></script>
-<script src="./journey_ui.js?v=global-character2"></script>
+<script src="./journey_ui.js?v=decision-menus1"></script>
 <script src="./config.js?v=20260913-village1"></script>
 <script src="./api.js?v=20260913-village1"></script>
 <script src="./auction_house.js?v=weapon-effects1"></script>
@@ -72,7 +73,7 @@
 <script src="./armor_designer.js?v=armor-passives1"></script>
 <script src="./catalog_editor.js?v=armor-passives1"></script>
 <script src="./debug.js?v=worldsmith-mobile1"></script>
-<script src="./gauntlet.js?v=ability-triggers1"></script>
-<script src="./village.js?v=mobile-nav1"></script>
+<script src="./gauntlet.js?v=decision-menus1"></script>
+<script src="./village.js?v=decision-menus1"></script>
 </body>
 </html>

@@ -40,7 +40,7 @@ window.GameGauntlet = function({api, onEncounter}) {
   const definition=node('select');definition.setAttribute('aria-label','Gauntlet definition');
   const selectedText=node('p'),status=node('p');status.setAttribute('role','status');
   const deploy=node('button','Start manually'),auto=node('button','Run automatic trial'),stop=node('button','Stop after current action'),refresh=node('button','Refresh Gauntlets');
-  const priorityList=node('div'),policyNote=node('p','Choose abilities in priority order. The trial tries the first ready ability, then waits if none can be used. It stops after 1,000 actions if the stage limit has not been reached. This does not change your character’s loadout.');
+  const priorityList=node('div'),policyNote=node('p','Choose abilities in priority order. The trial tries the first ready ability, then waits if none can be used. It stops after 1,000 actions if the stage limit has not been reached. This does not change your character’s loadout.');priorityList.className='gauntlet-priority-list';
   const healLabel=node('label','Heal below HP fraction '),healBelow=node('input');healBelow.type='number';healBelow.min='0.01';healBelow.max='1';healBelow.step='0.05';healBelow.value='0.5';healLabel.append(healBelow);
   const stagesLabel=node('label','Stop after cleared stages '),maxStages=node('input');maxStages.type='number';maxStages.min='1';maxStages.max='1000';maxStages.value='10';stagesLabel.append(maxStages);
   const summary=node('section'),history=node('section'),best=node('p');
@@ -48,7 +48,10 @@ window.GameGauntlet = function({api, onEncounter}) {
   for(const b of [deploy,auto,stop,refresh]){b.type='button';b.dataset.localControl='true';}
   stop.onclick=()=>{stopRequested=true;stop.disabled=true;status.textContent='Stopping after the current action…';};
   const policy=node('section');policy.className='gauntlet-policy';policy.append(node('h3','Automatic ability priority'),policyNote,priorityList,healLabel,stagesLabel);
-  root.append(node('h2','Gauntlet'),intro,definition,selectedText,policy,deploy,auto,stop,refresh,status,summary,best,history);
+  const setup=node('details');setup.className='gauntlet-setup';const setupLabel=node('summary','Trial setup');setup.append(setupLabel,definition,policy,refresh);
+  const actions=node('div');actions.className='gauntlet-actions';actions.append(deploy,auto,stop);
+  const historyMenu=node('details');historyMenu.className='gauntlet-history';const historyLabel=node('summary','Recent runs');historyMenu.append(historyLabel,history);
+  root.append(node('h2','Gauntlet'),intro,selectedText,setup,actions,status,summary,best,historyMenu);
   const selectedHero=()=>heroes.find(h=>h.id===window.GameSelectedCharacter.id);
   function controls(){
     const limit=definitions.find(d=>d.slug===definition.value)?.party_limit;
@@ -56,6 +59,7 @@ window.GameGauntlet = function({api, onEncounter}) {
     deploy.disabled=busy||!limit||!hero||!hero.is_alive||hero.health<=0||Boolean(hero.active_encounter_id);
     auto.disabled=deploy.disabled||!priority.length||!Number.isInteger(Number(maxStages.value))||Number(maxStages.value)<1||Number(maxStages.value)>1000||!(Number(healBelow.value)>0&&Number(healBelow.value)<=1);
     stop.disabled=!autoRunning||stopRequested;
+    stop.hidden=!autoRunning;
     refresh.disabled=busy;definition.disabled=busy;
     priorityList.querySelectorAll('button,input').forEach(control=>control.disabled=busy||control.dataset.boundary==='true');
     healBelow.disabled=busy;maxStages.disabled=busy;
@@ -86,13 +90,15 @@ window.GameGauntlet = function({api, onEncounter}) {
       node('p',`Reached stage ${run.highest_stage_reached}; completed stage ${run.highest_stage_completed}. ${run.encounters_completed} encounters completed. Duration: ${run.duration_seconds}s.`));
     if(run.termination_reason)summary.append(node('p',run.termination_reason));
     summary.append(button(['active','awaiting_continue'].includes(run.status)?'Resume Gauntlet':'View final battle',async()=>onEncounter(await api('/encounters/'+run.encounter_id))));
-    const battles=node('ol');for(const e of run.encounters){const li=node('li');li.append(button(`Stage ${e.stage}: ${e.state.replaceAll('_',' ')} (${e.turn} turns)`,async()=>onEncounter(await api('/encounters/'+e.id))));battles.append(li);}summary.append(battles);
+    const stages=node('details');stages.className='gauntlet-stages';stages.append(node('summary',`Stage history (${run.encounters.length})`));
+    const battles=node('ol');for(const e of run.encounters){const li=node('li');li.append(button(`Stage ${e.stage}: ${e.state.replaceAll('_',' ')} (${e.turn} turns)`,async()=>onEncounter(await api('/encounters/'+e.id))));battles.append(li);}stages.append(battles);summary.append(stages);
   }
   async function load(){
     const me=await api('/auth/me');if(owner!==me.id){owner=me.id;activeRun=null;summary.replaceChildren();}
     const [rosterData,definitionData,historyData]=await Promise.all([api('/adventurers'),api('/gauntlets'),api('/gauntlet-runs')]);
     heroes=rosterData;definitions=definitionData;const old=definition.value;
     definition.replaceChildren(...definitions.map(d=>new Option(d.name,d.slug)));if(definitions.some(d=>d.slug===old))definition.value=old;
+    setupLabel.textContent=`Trial setup · ${definition.selectedOptions[0]?.textContent||'Choose a gauntlet'}`;
     const selectedId=window.GameSelectedCharacter.id;
     const sheet=heroes.some(h=>h.id===selectedId)?await api('/adventurers/'+encodeURIComponent(selectedId)):null;
     abilities=(sheet?.abilities||[]).filter(a=>a.unlocked&&a.trigger_mode!=='on_hit');
@@ -102,11 +108,12 @@ window.GameGauntlet = function({api, onEncounter}) {
     drawPriority();
     controls();best.textContent=`Personal best: stage ${historyData.best_completed} completed; stage ${historyData.best_reached} reached.`;
     history.replaceChildren(node('h3','Recent runs'));
+    historyLabel.textContent=`Recent runs (${historyData.runs.length})`;
     for(const r of historyData.runs){const row=node('p');row.append(button(`${r.party.map(h=>h.name).join(' + ')} — completed ${r.highest_stage_completed}, reached ${r.highest_stage_reached} — ${r.status.replaceAll('_',' ')} — ${new Date(r.started_at+'Z').toLocaleString()}`,()=>showRun(r.id)));history.append(row);}
     if(!historyData.runs.length)history.append(node('p','No Gauntlet runs yet.'));
     if(activeRun)await showRun(activeRun);
   }
-  definition.onchange=controls;
+  definition.onchange=()=>{setupLabel.textContent=`Trial setup · ${definition.selectedOptions[0]?.textContent||'Choose a gauntlet'}`;controls();};
   healBelow.oninput=controls;maxStages.oninput=controls;
   deploy.onclick=()=>perform(async()=>{
     const result=await api('/gauntlet-runs',{definition_slug:definition.value,adventurer_ids:[window.GameSelectedCharacter.id]});
