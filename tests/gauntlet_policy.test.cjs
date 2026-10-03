@@ -34,3 +34,10 @@ test('wait ends priority and missing abilities fall back to waiting', () => {
   assert.equal([...commands(encounter, ['wait', 'attack'], 0.5)][0].action, 'wait');
   assert.equal([...commands(encounter, ['missing'], 0.5)][0].action, 'wait');
 });
+
+test('equipped passives are never sent as manual commands', () => {
+  const encounter = {turn: 1, participants: [{id: 'hero', hp: 100, max_hp: 100, acted: false,
+    equipped_abilities: [{slug: 'riposte', trigger_mode: 'on_hit', effect: 'damage', target_type: 'enemy'}]}],
+    enemies: [{id: 'enemy', hp: 20}]};
+  assert.equal([...commands(encounter, ['riposte'], 0.5)][0].action, 'wait');
+});

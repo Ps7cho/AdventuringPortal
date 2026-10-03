@@ -33,6 +33,10 @@ window.GameEquipmentInventory = (host, {api, reload, id}) => {
         }
       }else{
         pane.append(node('p',bonuses(item)));
+        pane.append(node('h4','Armor effects'));
+        if(!item.effects?.length)pane.append(node('p','No passive effects.'));
+        for(const effect of item.effects||[]){pane.append(node('strong',effect.name+' | '+(effect.proc_chance_percent??100)+'% when hit'),node('p',effect.description||''),node('p',(effect.cooldown_value||0)+' '+(effect.cooldown_type||'turn')+' cooldown'));}
+
         const keys=new Set([...Object.keys(item.bonuses || {}),...Object.keys(current?.bonuses || {})]);
         const list=node('dl','','gear-comparison');
         for(const key of keys){const delta=(item.bonuses?.[key] || 0)-(current?.bonuses?.[key] || 0);list.append(node('dt',key),node('dd',`${delta>=0?'+':''}${delta}`));}pane.append(node('p','Compared with '+(current?.name || 'empty slot')),list);

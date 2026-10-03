@@ -183,7 +183,7 @@ function encounterChoices(actor) {
     {slug:'attack',name:'Attack',effect:'damage',target_type:'enemy'},
     {slug:'power_strike',name:'Power Strike',effect:'damage',target_type:'enemy'},
     {slug:'guard',name:'Guard',effect:'guard',target_type:'self'}];
-  return [...abilities.map(a=>({...a, kind:'ability', branch:
+  return [...abilities.filter(a=>a.trigger_mode!=='on_hit').map(a=>({...a, kind:'ability', branch:
     a.target_type==='enemy' || a.effect==='damage' ? 'attack' : 'support'})),
     ...(actor?.consumables || []).filter(i=>i.quantity>0 && !['essence','orb'].includes(i.effect))
       .map(i=>({...i,kind:'item',branch:'items',target_type:'ally'}))];

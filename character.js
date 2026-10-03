@@ -151,11 +151,14 @@ async function renderSheet(snapshot) {
   }));
   $('skills').innerHTML = hero.skills.length ? '<ul>' + hero.skills.map(s => `<li>${escape(s.name)}</li>`).join('') + '</ul>' : '<p class="muted">No skills learned.</p>';
   $('loadout').replaceChildren();
-  for (let i=0; i<hero.progression.ability_slots; i++) {
-    const label=document.createElement('label'); label.textContent='Slot ' + (i+1);
-    const select=document.createElement('select'); select.name='ability'; select.setAttribute('aria-label','Ability slot ' + (i+1));
-    select.append(new Option('Empty',''), ...hero.abilities.filter(a=>a.unlocked).map(a=>new Option(a.name,a.id)));
-    select.value=hero.equipped_ability_ids[i] || ''; select.disabled=Boolean(hero.active_encounter_id);
+  const slotModes=Array(hero.progression.ability_slots).fill('active');
+  const equippedByMode=mode=>hero.equipped_ability_ids.filter(id=>hero.abilities.some(a=>a.id===id&&(a.trigger_mode||'active')===mode));
+  for (let i=0; i<slotModes.length; i++) {
+    const mode=slotModes[i],number=mode==='active'?i+1:i-hero.progression.ability_slots+1;
+    const label=document.createElement('label'); label.textContent=(mode==='active'?'Active':'Passive')+' slot '+number;
+    const select=document.createElement('select');select.dataset.mode=mode; select.name='ability'; select.setAttribute('aria-label',label.textContent);
+    select.append(new Option('Empty',''), ...hero.abilities.filter(a=>a.unlocked&&(a.trigger_mode||'active')===mode).map(a=>new Option(a.name,a.id)));
+    select.value=equippedByMode(mode)[number-1]||''; select.disabled=Boolean(hero.active_encounter_id);
     GameUI.dropZone(label,'application/x-game-ability',abilityId=>assignAbility(abilityId,i));
     label.append(select); $('loadout').append(label);
   }
@@ -171,9 +174,11 @@ async function renderSheet(snapshot) {
     const details=document.createElement('small'); details.textContent=ability.cooldown_value ? ability.cooldown_value + ' ' + ability.cooldown_type + ' cooldown' : 'No cooldown';
     GameUI.hint(card,ability.description + (ability.status_effect ? '\nApplies ' + ability.status_effect.name + ': ' + ability.status_effect.damage + ' damage/stack, ' + ability.status_effect.duration + ' rounds, max ' + ability.status_effect.max_stacks + ' stacks.' : '') + '\n' + (ability.requires_weapon ? 'Requires: ' + (ability.allowed_weapon_tags.join(' / ') || 'any weapon') : 'No weapon required') + '\n' + (ability.damage_multiplier==null ? 'Power: ' + ability.power : ability.damage_multiplier + ' x ' + (ability.requires_weapon?'weapon damage':'attack power')) + '\nTargets: ' + (ability.max_targets || 'all valid'));
     const equip=document.createElement('button'); equip.type='button'; equip.textContent='Add to Loadout'; equip.disabled=!ability.unlocked || Boolean(hero.active_encounter_id);
-    equip.onclick=()=>{const slots=[...$('loadout').querySelectorAll('select')];const empty=slots.findIndex(s=>!s.value);assignAbility(ability.id,empty<0?0:empty);};
+    equip.onclick=()=>{const slots=[...$('loadout').querySelectorAll('select')];const mode=ability.trigger_mode||'active';const empty=slots.findIndex(s=>s.dataset.mode===mode&&!s.value);const index=empty<0?slots.findIndex(s=>s.dataset.mode===mode):empty;if(index>=0)assignAbility(ability.id,index);};
     if(ability.unlocked && !hero.active_encounter_id) GameUI.draggable(card,'application/x-game-ability',ability.id);
     const values=document.createElement('small');values.textContent=(ability.effect_type==='guard'?`Guard ${ability.guard_percent??60}%`:ability.damage_multiplier==null?`Power ${ability.power}`:`Multiplier ${ability.damage_multiplier}×`) + ` · Targets ${ability.max_targets??'all'}` + ((ability.effect_chain||[]).length?` · ${ability.effect_chain.length} follow-up effects`:'');
+    values.textContent += ability.trigger_mode==='on_hit'?` | Passive: ${ability.proc_chance_percent??100}% when hit`:'';
+    if(ability.effect_type==='damage')values.textContent+=` | ${ability.strike_count??1} strikes | ${ability.extra_strike_chance??0}% repeat (max +${ability.max_extra_strikes??1})`;
     card.append(badge,name,description,values,details,equip); $('abilities').append(card);
   }
   $('resume').hidden = !hero.active_encounter_id; $('resume').href = './index.html?encounter=' + hero.active_encounter_id;
@@ -184,6 +189,7 @@ async function renderSheet(snapshot) {
 function assignAbility(abilityId,index) {
   if(hero.active_encounter_id || !hero.abilities.some(a=>a.id===abilityId && a.unlocked)) return;
   const slots=[...$('loadout').querySelectorAll('select')];
+  if(!slots[index]||![...slots[index].options].some(o=>o.value===abilityId)){ $('loadout-status').textContent='Choose a matching active or passive slot.';return; }
   const source=slots.findIndex(s=>s.value===abilityId);
   const old=slots[index].value;
   if(source>=0 && source!==index) slots[source].value=old;

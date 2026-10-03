@@ -94,8 +94,8 @@ window.GameCatalogEditor = function(api, onSaved) {
       function addDefaultDrop(tier){if(consumables.length)tier.drops.push(consumableDrop(consumables[0]));else if(weapons.length)tier.drops.push(weaponDrop(weapons[0]));}
       renderBuilder();const advanced=journeyInput.closest('.quest-advanced');fields.insertBefore(builder,advanced);
     }
-    const abilityBuilder=['abilities','ability_archetypes','weapon_effects'].includes(catalog)&&window.GameAbilityDesigner
-      ? GameAbilityDesigner({fields,inputs,catalog,catalogs}) : null;
+    const abilityBuilder=['abilities','ability_archetypes','weapon_effects','armor_effects'].includes(catalog)&&window.GameAbilityDesigner
+      ? GameAbilityDesigner({fields,inputs,catalog,catalogs}) : catalog==='gear_definitions'&&window.GameArmorAssignmentDesigner?GameArmorAssignmentDesigner({fields,inputs,catalogs}):null;
     const poolBuilder=catalog==='weapon_effect_pools'&&window.GameWeaponPoolDesigner?GameWeaponPoolDesigner({fields,inputs,catalogs}):null;
     if(inputs.has('effect_pool_slug'))fields.append(el('p',catalog==='weapon_definitions'?'An empty pool inherits the weapon type’s pool. Choose a pool with zero chance to force plain weapons.':'An empty pool generates plain weapons.'));
     const error=el('p');error.role='alert';

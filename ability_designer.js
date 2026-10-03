@@ -1,11 +1,12 @@
 /* Visual authoring controls backed by the existing reviewed catalog workflow. */
 window.GameAbilityDesigner = function({fields, inputs, catalog, catalogs}) {
   const el=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n;};
-  const isTemplate=catalog==='ability_archetypes';
+  const isArmor=catalog==='armor_effects';
+  const isTemplate=catalog==='ability_archetypes'||isArmor;
   const isWeapon=catalog==='weapon_effects';
-  const defaults={effect_type:'damage',target_type:'enemy',power:10,damage_multiplier:null,requires_weapon:false,allowed_weapon_tags:[],cooldown_type:'turn',cooldown_value:0,max_targets:1,duration_turns:3,guard_percent:60,effect_chain:[],rank_upgrades:{},ability_type:'attack',status_effect_slug:null,affliction_ops:[]};
-  const dialNames={power:'Power / healing % / evasion %',damage_multiplier:'Damage multiplier',cooldown_value:'Cooldown',max_targets:'Maximum targets',duration_turns:'Duration (rounds)',guard_percent:'Guard reduction (%)'};
-  const builder=el('fieldset');builder.className='ability-designer';builder.append(el('legend',isWeapon?'Weapon effect designer':isTemplate?'Reusable ability archetype':'Ability designer'));
+  const defaults={effect_type:'damage',target_type:'enemy',power:10,damage_multiplier:null,requires_weapon:false,allowed_weapon_tags:[],cooldown_type:'turn',cooldown_value:0,max_targets:1,duration_turns:3,guard_percent:60,effect_chain:[],rank_upgrades:{},ability_type:'attack',status_effect_slug:null,affliction_ops:[],strike_count:1,extra_strike_chance:0,max_extra_strikes:1,trigger_mode:'active',proc_chance_percent:100};
+  const dialNames={strike_count:'Fixed strikes',extra_strike_chance:'Extra strike chance (%)',max_extra_strikes:'Maximum extra strikes',proc_chance_percent:'When hit proc chance (%)',power:'Power / healing % / evasion %',damage_multiplier:'Damage multiplier',cooldown_value:'Cooldown',max_targets:'Maximum targets',duration_turns:'Duration (rounds)',guard_percent:'Guard reduction (%)'};
+  const builder=el('fieldset');builder.className='ability-designer';builder.append(el('legend',isWeapon?'Weapon effect designer':isArmor?'Armor effect designer':isTemplate?'Reusable ability archetype':'Ability designer'));
   const controls=new Map(inputs), labels=new Map();
   const advanced=el('details');advanced.className='quest-advanced';advanced.append(el('summary','Advanced definition fields'));
   const basic=el('div');basic.className='editor-fields';
@@ -30,7 +31,7 @@ window.GameAbilityDesigner = function({fields, inputs, catalog, catalogs}) {
     const data={...defaults,...jsonValue(inputs.get('definition'),{},'object')};
     for(const [key,value] of Object.entries(data)){
       let n;
-      const choices={effect_type:['damage','heal','guard','evade','buff','shield','cleanse','affliction'],target_type:['enemy','self','ally','party'],cooldown_type:['turn','minutes','hours']};
+      const choices={trigger_mode:['active','on_hit'],effect_type:['damage','heal','guard','evade','buff','shield','cleanse','affliction'],target_type:['enemy','self','ally','party'],cooldown_type:['turn','minutes','hours']};
       if(choices[key])n=select(choices[key].map(v=>[v,v]),value,commit);
       else if(key==='status_effect_slug')n=select([['','None'],...(catalogs.afflictions?.records||[]).map(r=>[r.values.slug,r.values.name])],value||'',commit);
       else if(typeof value==='boolean'){n=el('input');n.type='checkbox';n.checked=value;n.onchange=commit;}
@@ -40,6 +41,12 @@ window.GameAbilityDesigner = function({fields, inputs, catalog, catalogs}) {
     }
   }else{
     for(const [key,input] of inputs)labels.set(key,input.closest('label'));
+  }
+  if(!isWeapon){
+    for(const key of ['strike_count','extra_strike_chance','max_extra_strikes','proc_chance_percent','trigger_mode']){
+      const l=labels.get(key);if(l?.firstChild?.nodeType===Node.TEXT_NODE)l.firstChild.textContent=key==='trigger_mode'?'Activation':dialNames[key];
+    }
+    for(const option of controls.get('trigger_mode')?.options||[])option.textContent=option.value==='on_hit'?'Passive: when hit':'Active ability';
   }
   // Normalize every structured field when the designer opens. Previously an
   // invalid affliction_ops value was repaired only after that specific field
@@ -64,14 +71,19 @@ window.GameAbilityDesigner = function({fields, inputs, catalog, catalogs}) {
     if(!isTemplate)put('archetype_slug',chosen.slug);
     commit();renderChain();renderRanks();renderOperations();updatePrimary();
   }));
-  if(!isWeapon)builder.append(templateTools,el('p','Apply a reusable starting point, then tune this definition. Each ability keeps its own saved values. Duplicate an ability to make another variant.'));
-  for(const key of isWeapon?['proc_chance_percent','recipient','allowed_weapon_tags']:['effect_type','target_type','power','damage_multiplier','requires_weapon','allowed_weapon_tags','cooldown_type','cooldown_value','max_targets','duration_turns','guard_percent']){
+  if(!isWeapon&&!isArmor)builder.append(templateTools,el('p','Apply a reusable starting point, then tune this definition. Each ability keeps its own saved values. Duplicate an ability to make another variant.'));
+  for(const key of isWeapon?['proc_chance_percent','recipient','allowed_weapon_tags']:['trigger_mode','proc_chance_percent','strike_count','extra_strike_chance','max_extra_strikes','effect_type','target_type','power','damage_multiplier','requires_weapon','allowed_weapon_tags','cooldown_type','cooldown_value','max_targets','duration_turns','guard_percent']){
     const l=labels.get(key);if(l)basic.append(l);
   }
+  if(!isWeapon){put('trigger_mode',isArmor?'on_hit':'active');if(labels.get('trigger_mode'))labels.get('trigger_mode').hidden=true;}
   const hint=el('p');hint.className='muted';builder.append(el('h3',isWeapon?'Weapon hit effect':'Primary effect'),basic,hint);
   if(labels.get('status_effect_slug')){labels.get('status_effect_slug').hidden=true;put('status_effect_slug',null);}
   function updatePrimary(){
     const effect=get('effect_type');
+    if(!isWeapon){
+      for(const key of ['strike_count','extra_strike_chance','max_extra_strikes'])if(labels.get(key))labels.get(key).hidden=effect!=='damage';
+      if(labels.get('proc_chance_percent'))labels.get('proc_chance_percent').hidden=!isArmor;
+    }
     const selectedTags=get('allowed_weapon_tags');for(const tag of selectedTags)if(![...tagPicker.options].some(o=>o.value===tag))tagPicker.add(new Option(tag,tag));for(const option of tagPicker.options)option.selected=selectedTags.includes(option.value);
     if(isWeapon){hint.textContent='Roll once per weapon attack that lands. Applications run before the attacking ability exploits afflictions. Follow-up effects use the actual hit results. Dodged attacks never trigger weapon effects.';return;}
     hint.textContent=effect==='damage'?'Blank multiplier uses fixed power. A multiplier uses actor power or equipped weapon damage.':effect==='heal'?'Power is a percentage of the recipient’s maximum HP.':effect==='guard'?'Guard reduction is a percentage for this round.':effect==='evade'?'Power is dodge chance; duration limits how long the next-attack dodge can wait.':effect==='affliction'?'Use this for status interactions or follow-up-only support/debuff abilities.':'Power and duration control the primary support effect.';
@@ -79,6 +91,8 @@ window.GameAbilityDesigner = function({fields, inputs, catalog, catalogs}) {
     if(labels.get('guard_percent'))labels.get('guard_percent').hidden=effect!=='guard';
     if(labels.get('duration_turns'))labels.get('duration_turns').hidden=!['buff','shield','evade'].includes(effect);
   }
+  if(!isWeapon)builder.append(el('p',isArmor?'Triggers when the wearer is hit. Enemy targeting retaliates against the attacker; self or party targeting provides support. Set the proc chance, cooldown, and follow-up effects. Dodges, damage over time, and other reactions do not trigger armor effects.':'Fixed strikes repeat the damage attack. After those strikes, successful extra-strike rolls add hits until the first failed roll or the cap. One cooldown per cast. Passive reactions are configured on armor.'));
+  controls.get('trigger_mode')?.addEventListener('change',updatePrimary);
   controls.get('effect_type')?.addEventListener('change',updatePrimary);updatePrimary();
   const operationsBox=el('section');builder.append(operationsBox);
   function renderOperations(){
@@ -129,13 +143,13 @@ window.GameAbilityDesigner = function({fields, inputs, catalog, catalogs}) {
       }
       card.append(grid);chainBox.append(card);
     });
-    const add=button('Add follow-up effect',()=>{let i=1;while(steps.some(s=>s.id==='effect_'+i))i++;steps.push({id:'effect_'+i,effect:'heal',recipient:'self',source:'damage_dealt',value:50,when:'on_damage',split:false});saveChain(steps);renderChain();renderRanks();});add.disabled=steps.length>=16;chainBox.append(add);
+    const add=button('Add follow-up effect',()=>{let i=1;while(steps.some(s=>s.id==='effect_'+i))i++;steps.push({id:'effect_'+i,effect:'heal',recipient:'self',source:isArmor?'fixed':'damage_dealt',value:isArmor?5:50,when:isArmor?'always':'on_damage',split:false});saveChain(steps);renderChain();renderRanks();});add.disabled=steps.length>=16;chainBox.append(add);
   }
   function renderRanks(){
     if(isWeapon)return;
     rankBox.replaceChildren(el('h3','Rank upgrades'),el('p','Set only values that change at each rank. Empty values inherit the previous rank. Upgrades apply when the character next departs; an active adventure keeps its saved ability values.'));
     const upgrades=get('rank_upgrades')||{},ranks=[...(catalogs.ranks?.records||[])].sort((a,b)=>a.values.min_level-b.values.min_level);
-    const dials=[...Object.entries(dialNames),...chain().flatMap(s=>s.effect==='modifier'?[['modifier:'+s.id,`Step ${s.id}: adjustment`],['duration:'+s.id,`Step ${s.id}: active rounds`]]:[['step:'+s.id,`Step ${s.id}: amount / conversion`]])];
+    const dials=[...Object.entries(dialNames).filter(([key])=>isArmor||key!=='proc_chance_percent'),...chain().flatMap(s=>s.effect==='modifier'?[['modifier:'+s.id,`Step ${s.id}: adjustment`],['duration:'+s.id,`Step ${s.id}: active rounds`]]:[['step:'+s.id,`Step ${s.id}: amount / conversion`]])];
     for(const {values:rank} of ranks){
       const details=el('details');details.open=Boolean(upgrades[rank.slug]);details.append(el('summary',`${rank.name} · level ${rank.min_level}`));const grid=el('div');grid.className='editor-fields';
       for(const [key,name] of dials){const n=number(upgrades[rank.slug]?.[key],value=>{upgrades[rank.slug]||={};if(value===null)delete upgrades[rank.slug][key];else upgrades[rank.slug][key]=value;if(!Object.keys(upgrades[rank.slug]).length)delete upgrades[rank.slug];put('rank_upgrades',upgrades);commit();});n.placeholder='Inherit';grid.append(label(name,n));}details.append(grid);rankBox.append(details);
@@ -149,5 +163,6 @@ window.GameAbilityDesigner = function({fields, inputs, catalog, catalogs}) {
   else for(const key of ['ability_type','cost_type','cost_value','loadout_order','affliction_ops','archetype_slug']){if(labels.get(key))advanced.append(labels.get(key));}
   builder.append(advanced);fields.prepend(builder);renderChain();renderRanks();
   if(isTemplate){basic.addEventListener('input',commit);basic.addEventListener('change',commit);}
+  if(isArmor)inputs.get('definition').value=JSON.stringify(definition(),null,2);
   return builder;
 };

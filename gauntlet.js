@@ -8,7 +8,7 @@ window.GameGauntletCommands = function*(encounter, priority, healBelow) {
   for(const slug of priority){
     if(slug==='wait')break;
     const spec=(actor.equipped_abilities||[]).find(a=>slug===a.catalog_slug||slug===a.slug);
-    if(!spec)continue;
+    if(!spec||spec.trigger_mode==='on_hit')continue;
     if(encounter.turn<(actor.ability_ready_turns?.[spec.slug]||1)||Date.now()/1000<(actor.ability_ready_at?.[spec.slug]||0))continue;
     const command={...base,ability_id:spec.slug};
     if(spec.requires_weapon){
@@ -95,7 +95,7 @@ window.GameGauntlet = function({api, onEncounter}) {
     definition.replaceChildren(...definitions.map(d=>new Option(d.name,d.slug)));if(definitions.some(d=>d.slug===old))definition.value=old;
     const selectedId=window.GameSelectedCharacter.id;
     const sheet=heroes.some(h=>h.id===selectedId)?await api('/adventurers/'+encodeURIComponent(selectedId)):null;
-    abilities=(sheet?.abilities||[]).filter(a=>a.unlocked);
+    abilities=(sheet?.abilities||[]).filter(a=>a.unlocked&&a.trigger_mode!=='on_hit');
     const available=new Set(abilities.map(a=>a.slug));
     if(selectedId!==priorityHero){priorityHero=selectedId;priority=['power_strike','attack'].filter(slug=>available.has(slug));}
     else priority=priority.filter(slug=>available.has(slug));
