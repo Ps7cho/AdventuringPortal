@@ -43,7 +43,7 @@ window.GameQuestLobby = ({api,startSolo,onEncounter,refreshParties,goBack}) => {
   const root=document.createElement('section');root.className='quest-lobby';
   root.innerHTML=`<header class="quest-lobby-heading"><div><button type="button" data-lobby-back>&larr; All quests</button><p class="eyebrow" data-lobby-kind>QUEST LOBBY</p><h2 data-lobby-title>Select a quest</h2><p data-lobby-region></p></div></header>
     <div class="quest-lobby-layout"><article class="quest-lobby-brief" data-lobby-brief></article><aside class="quest-lobby-party"><p class="eyebrow">EXPEDITION PARTY</p><h3>Gather your party</h3>
-      <label>Your adventurer<select data-lobby-hero></select></label><label>Departure group<select data-lobby-party></select></label>
+      <p>Your adventurer: <strong data-lobby-hero></strong></p><label>Departure group<select data-lobby-party></select></label>
       <div data-lobby-roster class="quest-lobby-roster"></div><p data-lobby-plan class="quest-lobby-plan"></p><label data-lobby-risk-wrap><input type="checkbox" data-lobby-risk> Accept above-rank risk</label>
       <div class="quest-lobby-actions"><button type="button" data-lobby-propose>Choose this quest</button><button type="button" data-lobby-ready>Ready up</button><button type="button" data-lobby-invite>Copy party invite</button><button type="button" data-lobby-depart>Depart</button></div>
       <label data-lobby-code-wrap hidden>Party invite code<input data-lobby-code readonly></label>
@@ -54,9 +54,10 @@ window.GameQuestLobby = ({api,startSolo,onEncounter,refreshParties,goBack}) => {
   const propose=get('[data-lobby-propose]'),ready=get('[data-lobby-ready]'),invite=get('[data-lobby-invite]'),depart=get('[data-lobby-depart]'),risk=get('[data-lobby-risk]'),codeWrap=get('[data-lobby-code-wrap]'),code=get('[data-lobby-code]');
   let entry=null,type='template',heroes=[],parties=[],busy=false,inviteCache=new Map();
   root.querySelectorAll('button').forEach(button=>button.dataset.localControl='');
-  const hero=()=>heroes.find(row=>String(row.id)===heroSelect.value);
+  const selectedHeroId=()=>window.GameSelectedCharacter.id;
+  const hero=()=>heroes.find(row=>String(row.id)===selectedHeroId());
   const party=()=>parties.find(row=>String(row.id)===partySelect.value);
-  const partyOptions=()=>parties.filter(row=>row.members.some(member=>member.is_yours && String(member.id)===heroSelect.value));
+  const partyOptions=()=>parties.filter(row=>row.members.some(member=>member.is_yours && String(member.id)===selectedHeroId()));
   const routeMatches=row=>Boolean(row?.selection && (type==='contract' ? String(row.selection.contract_id)===String(entry?.id) : row.selection.template_slug===entry?.slug));
   const selectionMatches=row=>routeMatches(row)&&Boolean(row.selection.accept_rank_risk)===risk.checked;
   function renderBrief(){
@@ -86,7 +87,7 @@ window.GameQuestLobby = ({api,startSolo,onEncounter,refreshParties,goBack}) => {
     if(routeMatches(party()))risk.checked=Boolean(party().selection.accept_rank_risk);
   }
   function renderParty(){
-    const selected=party(),member=selected?.members.find(row=>row.is_yours&&String(row.id)===heroSelect.value),matches=selectionMatches(selected);
+    const selected=party(),member=selected?.members.find(row=>row.is_yours&&String(row.id)===selectedHeroId()),matches=selectionMatches(selected);
     roster.replaceChildren();
     if(!selected){const card=make('article','','quest-lobby-member');card.append(make('span','','presence-dot online'),make('strong',hero()?.name||'Choose an adventurer'),make('small','Solo · Ready'));roster.append(card);}
     else for(const row of selected.members){const card=make('article','','quest-lobby-member');card.append(make('span','',`presence-dot ${row.is_online?'online':'offline'}`),make('strong',row.name),make('small',`${row.player||'Player'} · ${row.is_online?'Online':'Offline'} · ${!row.is_alive?'Fallen':row.is_ready?'Ready':'Not ready'}${row.is_leader?' · Leader':''}`));roster.append(card);}
@@ -98,16 +99,16 @@ window.GameQuestLobby = ({api,startSolo,onEncounter,refreshParties,goBack}) => {
   }
   async function task(work){if(busy)return;busy=true;status.textContent='';renderParty();try{await work();}catch(error){status.textContent=error.message;}finally{busy=false;renderParty();}}
   async function sync(preferred){parties=await refreshParties();syncPartySelect(preferred);renderParty();}
-  heroSelect.onchange=()=>{syncPartySelect();renderParty();};partySelect.onchange=()=>{sessionStorage.setItem('quest-lobby-party',partySelect.value);risk.checked=Boolean(party()?.selection?.accept_rank_risk);codeWrap.hidden=true;renderParty();};risk.onchange=renderParty;
+  partySelect.onchange=()=>{sessionStorage.setItem('quest-lobby-party',partySelect.value);risk.checked=Boolean(party()?.selection?.accept_rank_risk);codeWrap.hidden=true;renderParty();};risk.onchange=renderParty;
   propose.onclick=()=>task(async()=>{const selected=party();const payload={...(type==='contract'?{contract_id:entry.id}:{template_slug:entry.slug}),accept_rank_risk:risk.checked};const updated=await api(`/parties/${selected.id}/selection`,payload);await sync(updated.id);status.textContent='Quest proposed. Every party member must ready up.';});
-  ready.onclick=()=>task(async()=>{const selected=party(),member=selected.members.find(row=>row.is_yours&&String(row.id)===heroSelect.value);const updated=await api(`/parties/${selected.id}/ready`,{adventurer_id:member.id,ready:!member.is_ready,selection_revision:selected.selection_revision});await sync(updated.id);});
+  ready.onclick=()=>task(async()=>{const selected=party(),member=selected.members.find(row=>row.is_yours&&String(row.id)===selectedHeroId());const updated=await api(`/parties/${selected.id}/ready`,{adventurer_id:member.id,ready:!member.is_ready,selection_revision:selected.selection_revision});await sync(updated.id);});
   invite.onclick=()=>task(async()=>{const selected=party();let value=inviteCache.get(selected.id);if(!value||Date.parse(value.expires_at)<=Date.now()){value=await api(`/parties/${selected.id}/invite`,{});inviteCache.set(selected.id,value);}try{await navigator.clipboard.writeText(value.code);codeWrap.hidden=true;status.textContent='Invite copied. Your friend can join from this lobby.';}catch(error){code.value=value.code;codeWrap.hidden=false;code.focus();code.select();status.textContent='Copy the selected invite code.';}});
-  depart.onclick=()=>task(async()=>{const selected=party();const encounter=selected?await api(`/parties/${selected.id}/encounters`,{selection_revision:selected.selection_revision}):await startSolo(entry,heroSelect.value,type);if(encounter)onEncounter(encounter);});
-  get('[data-lobby-create]').onsubmit=event=>{event.preventDefault();task(async()=>{const name=new FormData(event.currentTarget).get('name').trim()||`${hero().name}'s party`;const created=await api('/parties',{adventurer_id:heroSelect.value,name});if(created.invite)inviteCache.set(created.id,created.invite);await sync(created.id);status.textContent='Party created. Copy the invite when you are ready.';});};
-  get('[data-lobby-join]').onsubmit=event=>{event.preventDefault();task(async()=>{const form=event.currentTarget,joined=await api('/parties/join',{adventurer_id:heroSelect.value,code:new FormData(form).get('code').trim()});form.reset();await sync(joined.id);status.textContent='Party joined. Review the proposed quest and ready up.';});};
+  depart.onclick=()=>task(async()=>{const selected=party();const encounter=selected?await api(`/parties/${selected.id}/encounters`,{selection_revision:selected.selection_revision}):await startSolo(entry,selectedHeroId(),type);if(encounter)onEncounter(encounter);});
+  get('[data-lobby-create]').onsubmit=event=>{event.preventDefault();task(async()=>{const name=new FormData(event.currentTarget).get('name').trim()||`${hero().name}'s party`;const created=await api('/parties',{adventurer_id:selectedHeroId(),name});if(created.invite)inviteCache.set(created.id,created.invite);await sync(created.id);status.textContent='Party created. Copy the invite when you are ready.';});};
+  get('[data-lobby-join]').onsubmit=event=>{event.preventDefault();task(async()=>{const form=event.currentTarget,joined=await api('/parties/join',{adventurer_id:selectedHeroId(),code:new FormData(form).get('code').trim()});form.reset();await sync(joined.id);status.textContent='Party joined. Review the proposed quest and ready up.';});};
   get('[data-lobby-back]').onclick=()=>goBack(type==='contract'?'bulletin':entry?.journey?.kind||'quest');
   root.open=(value,entryType='template')=>{entry=value;type=entryType;risk.checked=routeMatches(party())?Boolean(party().selection.accept_rank_risk):false;get('[data-lobby-kind]').textContent=type==='contract'?'RECOVERY CONTRACT LOBBY':`${entry.journey?.kind||'quest'} lobby`;get('[data-lobby-title]').textContent=entry.title||entry.name;get('[data-lobby-region]').textContent=entry.region||'';codeWrap.hidden=true;status.textContent='';renderBrief();renderParty();};
-  root.update=(rows,partyRows)=>{heroes=(rows||[]).filter(row=>row.is_alive&&row.health>0&&!row.active_encounter_id);parties=partyRows||[];const previous=heroSelect.value;heroSelect.replaceChildren(...heroes.map(row=>new Option(`${row.name} · ${row.health} HP`,row.id)));if(heroes.some(row=>String(row.id)===previous))heroSelect.value=previous;heroSelect.disabled=!heroes.length;syncPartySelect();renderParty();};
+  root.update=(rows,partyRows)=>{heroes=(rows||[]).filter(row=>row.is_alive&&row.health>0&&!row.active_encounter_id);parties=partyRows||[];heroSelect.textContent=hero()?.name||'Select a living adventurer in Character';syncPartySelect();renderParty();};
   return root;
 };
 

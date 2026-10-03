@@ -1,3 +1,6 @@
+/* One active character for the village. Only the Character tab changes it. */
+window.GameSelectedCharacter = {id:sessionStorage.getItem('selected-character') || null};
+
 /* Deployment menu shared by both clients. */
 window.GameLobby = ({roster,enemy,length,start,account,onSelection,openCharacter}) => {
   document.body.classList.add('game-menu');
@@ -5,11 +8,11 @@ window.GameLobby = ({roster,enemy,length,start,account,onSelection,openCharacter
   const play=document.createElement('section');play.className='play-lobby';
   play.innerHTML=`<div class="lobby-adventurer"><div class="lobby-heading"><span class="eyebrow">YOUR ADVENTURER</span><a class="lobby-sheet">Character</a></div>
   <div class="lobby-portrait"><svg viewBox="0 0 300 480" role="img" aria-label="Adventurer silhouette"><ellipse cx="150" cy="452" rx="86" ry="12" fill="#101414"/><circle cx="150" cy="65" r="32" fill="#829d98"/><path d="M127 94 L173 94 180 112 213 124 237 223 219 271 200 263 207 219 188 165 185 267 201 420 180 440 159 433 149 310 139 433 115 440 99 420 114 267 111 165 92 219 100 263 81 271 64 223 87 124 120 112 Z" fill="#3f5955" stroke="#b1cfbe" stroke-width="2"/><path d="M120 116 L150 153 180 116 M114 259 L185 259" fill="none" stroke="#a9c8ca" stroke-width="3"/></svg></div>
-  <h2 class="lobby-name">No adventurer</h2><p class="lobby-health"></p><div class="lobby-roster" role="group" aria-label="Active adventurer"></div></div>
-  <div class="quest-intro"><p class="eyebrow">PREPARE FOR YOUR NEXT QUEST</p><h2>Choose your adventurer</h2>
-  <p>Pick an adventurer, then browse Quests or take a recovery contract from the Bulletin Board.</p>
+  <h2 class="lobby-name">No adventurer</h2><p class="lobby-health"></p></div>
+  <div class="quest-intro"><p class="eyebrow">PREPARE FOR YOUR NEXT QUEST</p><h2>Your adventurer is ready</h2>
+  <p>Choose your adventurer in Character, then browse Quests or take a recovery contract from the Bulletin Board.</p>
   <p class="lobby-empty" hidden>Create an adventurer to enter Mosswood.</p></div>`;
-  const list=play.querySelector('.lobby-roster'),sheet=play.querySelector('.lobby-sheet');
+  const sheet=play.querySelector('.lobby-sheet');
   sheet.onclick=event=>{if(!selected||!openCharacter)return;event.preventDefault();openCharacter(selected);};
   const recruit=document.createElement('button');recruit.textContent='Create Adventurer';
   recruit.onclick=()=>{document.getElementById('tab-character').click();document.getElementById('name').focus();};
@@ -17,26 +20,15 @@ window.GameLobby = ({roster,enemy,length,start,account,onSelection,openCharacter
   let selected=null;
   const sync=()=>{
     const inputs=[...roster.querySelectorAll('input[type=checkbox]')].filter(input=>!input.disabled);
-    selected=inputs.find(input=>input.value===selected)?.value || inputs.find(input=>input.checked)?.value || inputs[0]?.value || null;
-    list.replaceChildren();
-    for(const input of inputs) {
-      input.checked=input.value===selected;
-      const label=input.closest('label'),row=label.parentElement,option=document.createElement('label'),radio=document.createElement('input');
-      radio.type='radio';radio.name='lobby-adventurer';radio.value=input.value;radio.checked=input.checked;
-      option.append(radio,document.createTextNode(label.textContent));list.append(option);
-      radio.onchange=()=>{selected=input.value;sync();};
-      if(input.checked) {
-        play.querySelector('.lobby-name').textContent=label.textContent;
-        play.querySelector('.lobby-health').textContent=row.querySelector('span')?.textContent || '';
-        sheet.href=row.querySelector('a').href;sheet.hidden=false;
-      }
-    }
+    selected=inputs.find(input=>input.value===window.GameSelectedCharacter.id)?.value || null;
+    for(const input of inputs) input.checked=input.value===selected;
+    const active=inputs.find(input=>input.value===selected);
+    if(active){const row=active.closest('.adventurer-card');play.querySelector('.lobby-name').textContent=row.querySelector('label').textContent;play.querySelector('.lobby-health').textContent=row.querySelector('span')?.textContent||'';sheet.href=row.querySelector('a').href;sheet.hidden=false;}
     if(!inputs.length) {play.querySelector('.lobby-name').textContent='No adventurer';play.querySelector('.lobby-health').textContent='';sheet.hidden=true;}
     play.querySelector('.lobby-empty').hidden=!!inputs.length;
     onSelection();
   };
   new MutationObserver(sync).observe(roster,{childList:true,subtree:true});
-  roster.addEventListener('change',event=>{if(event.target.checked)selected=event.target.value;sync();});
   play.selectCharacter=id=>{selected=id;sync();};
   return play;
 };
@@ -50,7 +42,7 @@ window.GameCharacterWorkspace = ({onSelect,recruit}={}) => {
   let heroes=[],selected=null,section='overview';
   function show(id,tab='overview'){
     const hero=heroes.find(row=>row.id===id);if(!hero)return;
-    selected=id;section=tab;select.value=id;sessionStorage.setItem('selected-character',id);
+    selected=id;section=tab;select.value=id;window.GameSelectedCharacter.id=id;sessionStorage.setItem('selected-character',id);
     const hash=tab&&tab!=='overview'?'#'+encodeURIComponent(tab):'';
     const src='./adventurer.html?id='+encodeURIComponent(id)+'&embedded=1'+hash;
     if(frame.getAttribute('src')!==src)frame.src=src;
@@ -59,10 +51,10 @@ window.GameCharacterWorkspace = ({onSelect,recruit}={}) => {
   select.onchange=()=>show(select.value);
   root.update=rows=>{
     heroes=(rows||[]).filter(hero=>hero.is_alive);
-    const preferred=heroes.some(hero=>hero.id===selected)?selected:heroes.some(hero=>hero.id===sessionStorage.getItem('selected-character'))?sessionStorage.getItem('selected-character'):heroes[0]?.id||null;
+    const preferred=heroes.some(hero=>hero.id===window.GameSelectedCharacter.id)?window.GameSelectedCharacter.id:heroes[0]?.id||null;
     select.replaceChildren(...heroes.map(hero=>new Option(`${hero.name} · ${hero.health} HP`,hero.id)));
     select.disabled=!heroes.length;
-    if(preferred)show(preferred,section);else{selected=null;frame.hidden=true;frame.removeAttribute('src');empty.hidden=false;}
+    if(preferred)show(preferred,section);else{selected=null;window.GameSelectedCharacter.id=null;sessionStorage.removeItem('selected-character');onSelect?.(null);frame.hidden=true;frame.removeAttribute('src');empty.hidden=false;}
   };
   root.open=show;
   root.selected=()=>selected;

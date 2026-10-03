@@ -11,9 +11,10 @@ window.GameAuctionHouse = ({api}) => {
       <label>Duration <select name="duration"><option value="1">1 hour</option><option value="24" selected>24 hours</option><option value="72">3 days</option><option value="168">7 days</option></select></label><button>List Item</button></form></details>
     <div data-market-list class="market-list"></div><div class="row"><button data-market-prev>Previous</button><button data-market-next>Next</button></div>`;
   const get=s=>panel.querySelector(s), form=get('[data-market-sell]'), heroLabel=get('[data-market-hero]');
-  let busy=false, heroes=[], selectedHeroId=sessionStorage.getItem('selected-character')||'', inventory=[], rows=[], offset=0, mine=false, hasMore=false, epoch=0;
+  let busy=false, heroes=[], inventory=[], rows=[], offset=0, mine=false, hasMore=false, epoch=0;
+  const selectedHeroId=()=>window.GameSelectedCharacter.id;
   const node=(tag,text)=>{const n=document.createElement(tag);n.textContent=text;return n;};
-  const hero=()=>heroes.find(h=>String(h.id)===String(selectedHeroId));
+  const hero=()=>heroes.find(h=>String(h.id)===String(selectedHeroId()));
   const canTrade=()=>hero()?.is_alive && hero()?.health>0 && !hero()?.active_encounter_id;
   const selectedItem=()=>inventory.find(i=>i.key===form.elements.namedItem('item').value);
   panel.updateControls=()=>{
@@ -66,19 +67,19 @@ window.GameAuctionHouse = ({api}) => {
       card.append(node('p',(row.status==='open'?'Ends ':'Deadline ')+new Date(row.expires_at).toLocaleString()));
       if(row.status==='open') {
         if(row.mine && !row.bid) {const b=node('button','Cancel Listing');b.dataset.cancel='';b.dataset.expires=row.expires_at;b.onclick=()=>transact(row,'cancel',{});card.append(b);}
-        else if(!row.mine && row.mode==='fixed') {const b=node('button','Buy for '+row.price+' gold');b.dataset.trade='';b.dataset.expires=row.expires_at;b.onclick=()=>transact(row,'buy',{adventurer_id:selectedHeroId});card.append(b);}
+        else if(!row.mine && row.mode==='fixed') {const b=node('button','Buy for '+row.price+' gold');b.dataset.trade='';b.dataset.expires=row.expires_at;b.onclick=()=>transact(row,'buy',{adventurer_id:selectedHeroId()});card.append(b);}
         else if(!row.mine) {
           const bidForm=node('form','');bidForm.className='row';const label=node('label','Bid amount (gold) '),input=document.createElement('input');
           input.type='number';input.min=row.minimum_bid;input.max=100000000;input.value=row.minimum_bid;input.required=true;label.append(input);
           const b=node('button','Place Bid');b.dataset.trade='';b.dataset.expires=row.expires_at;
-          bidForm.append(label,b);bidForm.onsubmit=e=>{e.preventDefault();transact(row,'bid',{adventurer_id:selectedHeroId,amount:Number(input.value)});};card.append(bidForm);
+          bidForm.append(label,b);bidForm.onsubmit=e=>{e.preventDefault();transact(row,'bid',{adventurer_id:selectedHeroId(),amount:Number(input.value)});};card.append(bidForm);
         }
       }
       list.append(card);
     }
   }
   panel.refresh=()=>task(reload);
-  panel.setAdventurer=id=>{selectedHeroId=id?String(id):'';heroLabel.textContent=hero()?.name||'No character selected';panel.updateControls();};
+  panel.setAdventurer=()=>{heroLabel.textContent=hero()?.name||'No character selected';panel.updateControls();};
   panel.reset=()=>{epoch++;busy=false;heroes=[];inventory=[];rows=[];offset=0;form.reset();form.elements.namedItem('item').replaceChildren();get('[data-market-list]').replaceChildren();heroLabel.textContent='No character selected';get('[data-market-gold]').textContent='';get('[data-market-status]').textContent='';};
   get('[data-market-refresh]').onclick=panel.refresh;
   panel.querySelectorAll('[data-market-view]').forEach(b=>b.onclick=()=>{if(busy)return;mine=b.dataset.marketView==='mine';offset=0;panel.querySelectorAll('[data-market-view]').forEach(e=>e.setAttribute('aria-pressed',String(e===b)));panel.refresh();});
@@ -86,7 +87,7 @@ window.GameAuctionHouse = ({api}) => {
   form.elements.mode.onchange=()=>{get('[data-price-label]').textContent=form.elements.mode.value==='auction'?'Starting bid for the lot (gold)':'Total price (gold)';};
   form.elements.namedItem('item').onchange=()=>{form.elements.quantity.value=1;form.elements.quantity.max=selectedItem()?.quantity || 1;panel.updateControls();};
   form.onsubmit=e=>{e.preventDefault();const item=selectedItem();if(!item)return;task(async generation=>{
-    await api('/auction-house',{adventurer_id:selectedHeroId,mode:form.elements.mode.value,quantity:Number(form.elements.quantity.value),price:Number(form.elements.price.value),duration_hours:Number(form.elements.duration.value),
+    await api('/auction-house',{adventurer_id:selectedHeroId(),mode:form.elements.mode.value,quantity:Number(form.elements.quantity.value),price:Number(form.elements.price.value),duration_hours:Number(form.elements.duration.value),
       ...(item.item_type==='weapon'?{weapon_id:item.id}:item.item_type==='gear'?{gear_id:item.id}:{consumable_slug:item.slug})});
     if(generation!==epoch)return;await reload(generation);get('[data-market-status]').textContent='Item listed. It is held by the auction house until this listing closes.';
   });};
