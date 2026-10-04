@@ -11,15 +11,25 @@ window.GameEquipmentInventory = (host, {api, reload, id}) => {
   const blocked=()=>busy || !hero?.is_alive || hero?.health<=0 || Boolean(hero?.active_encounter_id);
   const rankAllowed=i=>{const rank=hero.progression?.ladder?.find(r=>r.name.toLowerCase()===i.required_rank);return !rank || rank.reached;};
   const bonuses=i=>Object.entries(i.bonuses || {}).map(([k,v])=>`${k} +${v}`).join(' ? ');
+  const rarity=i=>['common','uncommon','rare','epic','legendary'].includes(i?.rarity)?i.rarity:'common';
+  const itemRarity=i=>Boolean(i?.weapon_type || i?.item_type==='gear');
+  function slots(item){
+    const count=Math.max(0,Math.min(4,Number(item.effect_slots)||0));
+    const wrap=node('div','','item-effect-slots');wrap.setAttribute('aria-label',`${count} empty effect slots`);
+    for(let index=0;index<count;index++)wrap.append(node('span','◇','item-effect-slot'));
+    return wrap;
+  }
   function controls(){host.querySelectorAll('[data-mutate]').forEach(b=>b.disabled=blocked() || b.dataset.rankLocked==='true');}
   async function act(work,message){if(busy)return;busy=true;controls();get('[data-gear-status]').textContent='';try{await work();await reload();get('[data-gear-status]').textContent=message;}catch(e){get('[data-gear-status]').textContent=e.message;}finally{busy=false;controls();}}
   function change(item,remove=false){act(()=>api('/adventurers/'+id+(item.weapon_type?'/weapon':'/equipment'),item.weapon_type?{weapon_id:remove?null:item.id}:{slot:item.slot,gear_id:remove?null:item.id}),remove?'Item unequipped.':'Equipment saved.');}
   function inspect(){
     const pane=get('[data-inspector]');pane.replaceChildren();const item=entries.find(e=>e.key===selected);
     if(!item){pane.append(node('p','Select an item to inspect it.'));return;}
+    pane.dataset.rarity=itemRarity(item)?rarity(item):'common';
     pane.append(node('p',item.category.toUpperCase(),'eyebrow'),node('h3',item.name));
     if(item.description)pane.append(node('p',item.description));
     if(item.weapon_type || item.item_type==='gear'){
+      pane.append(node('p',rarity(item).toUpperCase()+' · '+(item.effect_slots||0)+' effect slots','item-rarity-label'),slots(item));
       const slot=item.weapon_type?'Main Hand':item.slot, current=hero.equipment[slot];
       pane.append(node('p',slot+' ? '+(item.required_rank || 'iron')+' rank'));
       if(item.weapon_type){pane.append(node('strong',item.base_damage+' base damage'),node('p',(item.tags || []).join(' ? ')));
@@ -56,8 +66,9 @@ window.GameEquipmentInventory = (host, {api, reload, id}) => {
     filtered.sort((a,b)=>(sort==='damage'?(b.base_damage || 0)-(a.base_damage || 0):sort==='equipped'?Number(equipped(b))-Number(equipped(a)):0)||a.name.localeCompare(b.name));
     get('[data-count]').textContent=filtered.length+' of '+entries.length+' item entries';
     const grid=get('[data-items]');grid.replaceChildren();
-    for(const item of filtered){const b=node('button','','inventory-card');b.type='button';b.setAttribute('aria-pressed',String(selected===item.key));
+    for(const item of filtered){const b=node('button','','inventory-card');b.type='button';b.setAttribute('aria-pressed',String(selected===item.key));if(itemRarity(item))b.dataset.rarity=rarity(item);
       b.append(node('small',equipped(item)?'EQUIPPED':item.category.toUpperCase()),node('strong',item.name),node('span',item.weapon_type?item.base_damage+' damage':item.item_type==='gear'?item.slot+' ? '+bonuses(item):'? '+(item.quantity || 1)));
+      if(itemRarity(item))b.append(node('small',rarity(item).toUpperCase()+' · '+(item.effect_slots||0)+' effect slots','item-rarity-label'),slots(item));
       if(item.effects?.length)b.append(node('span',item.effects.map(effect=>effect.name).join(', ')));
       b.onclick=()=>{selected=item.key;draw();};grid.append(b);}
     if(!filtered.length)grid.append(node('p',entries.length?'No items match these filters.':'Your pocket dimension is empty.'));
@@ -69,7 +80,7 @@ window.GameEquipmentInventory = (host, {api, reload, id}) => {
     if(selected && !entries.some(e=>e.key===selected))selected=null;
     get('[data-gold]').textContent=hero.gold+' gold';const slots=get('[data-slots]');slots.replaceChildren();
     for(const [slot,item] of Object.entries(hero.equipment)){
-      const b=node('button','','equipped-slot');b.type='button';b.append(node('small',slot),node('strong',item?.name || 'Empty'));
+      const b=node('button','','equipped-slot');b.type='button';if(item)b.dataset.rarity=rarity(item);b.append(node('small',slot),node('strong',item?.name || 'Empty'));if(item)b.append(node('small',rarity(item).toUpperCase()+' · '+(item.effect_slots||0)+' slots','item-rarity-label'));
       b.onclick=()=>{if(item){selected=item.id;draw();}else{get('[data-category]').value=slot==='Main Hand'?'weapon':'gear';get('[data-search]').value=slot==='Main Hand'?'':slot;draw();}};slots.append(b);
     }
     const totals={};for(const item of Object.values(hero.equipment))for(const [k,v] of Object.entries(item?.bonuses || {}))totals[k]=(totals[k] || 0)+v;

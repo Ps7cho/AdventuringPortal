@@ -41,6 +41,7 @@ window.GameAuctionHouse = ({api}) => {
     }
     if(generation!==epoch)return;
     form.elements.namedItem('item').replaceChildren(new Option('Choose an item',''),...inventory.map(i=>new Option(i.name+' ? '+i.quantity,i.key)));
+    for(const option of form.elements.namedItem('item').options){const item=inventory.find(i=>i.key===option.value);if(item?.rarity)option.textContent+=' · '+item.rarity.toUpperCase();}
     heroLabel.textContent=h?.name||'No character selected';
     get('[data-market-gold]').textContent=h ? h.name+' ? '+h.gold+' gold'+(!canTrade()?' ? Return to the village with a living adventurer to trade.':'') : 'Select a living adventurer in Character to trade.';
   }
@@ -59,7 +60,8 @@ window.GameAuctionHouse = ({api}) => {
     const list=get('[data-market-list]');list.replaceChildren();
     if(!rows.length)list.append(node('p',mine?'No sales or bids yet.':'No listings available. Be the first to list an item.'));
     for(const row of rows) {
-      const card=node('article','');card.className='market-card';
+      const card=node('article','');card.className='market-card';if(row.item.rarity)card.dataset.rarity=row.item.rarity;
+      if(row.item.rarity)card.append(node('small',row.item.rarity.toUpperCase()+' · '+(row.item.effect_slots||0)+' empty effect slots','item-rarity-label'));
       card.append(node('h3',row.item.name+' ? '+row.quantity),node('p',row.mode==='fixed'?'Fixed price: '+row.price+' gold':'Highest bid: '+row.bid+' gold ? Next bid: '+row.minimum_bid+' gold'),node('small','Seller: '+row.seller+' ? '+row.status+(row.my_bid?' ? Your bid':'')));
       if(row.item.item_type==='weapon'){card.append(node('p',row.item.base_damage+' damage ? '+row.item.required_rank+' rank ? '+row.item.tags.join(', ')));for(const effect of row.item.effects||[])card.append(node('p',effect.name+' · '+effect.proc_chance_percent+'% on hit'));}
       else if(row.item.item_type==='gear')card.append(node('p',row.item.slot+' ? '+row.item.required_rank+' rank ? '+Object.entries(row.item.bonuses).map(([k,v])=>k+' +'+v).join(', ')));

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Mosswood Village</title>
-  <link rel="stylesheet" href="./ui.css?v=startup-equipment1">
+  <link rel="stylesheet" href="./ui.css?v=quest-results1">
 </head>
 <body class="game-menu">
 <main>
@@ -60,6 +60,7 @@
     </div>
     <details class="encounter-information"><summary>Battlefield and journey details</summary><p id="encounter-id"></p><p id="stage-description"></p><p id="camp-description"></p><div id="group-loot" class="slot" hidden></div><div id="combatants" class="combatants"></div></details>
   </section>
+  <section id="quest-results" class="quest-results" hidden aria-live="polite"></section>
   <section class="encounter-log"><details><summary>Turn Events</summary><ol id="log" aria-live="polite"></ol></details></section>
   </div>
 </main>
@@ -71,6 +72,7 @@
 <script defer src="./api.js?v=startup-equipment1"></script>
 <script defer src="./auction_house.js?v=weapon-effects1"></script>
 <script defer src="./gauntlet.js?v=decision-menus1"></script>
-<script defer src="./village.js?v=startup-equipment1"></script>
+<script defer src="./quest_results.js?v=quest-results1"></script>
+<script defer src="./village.js?v=quest-results1"></script>
 </body>
 </html>

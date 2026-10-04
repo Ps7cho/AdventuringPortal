@@ -5,6 +5,7 @@ const liveStatus=document.createElement('small'); liveStatus.id='encounter-live-
 const live=window.GameLive?.connect(GameApi.baseUrl,()=>GameApi.liveToken?.(),data=>render(data,true),value=>{liveStatus.textContent=value;}) || {watch(){liveStatus.textContent='Live updates unavailable';},close(){}};
 let busy = false;
 let loginRequested = false;
+let resultsRunId=null;
 let signedInUser = null;
 const savedKey = () => `encounter-id:${signedInUser.id}`;
 let enemyCatalog = [];
@@ -71,9 +72,12 @@ function controls() {
 }
 function render(data, pushed=false) {
   if(window.GameLive?.stale(encounter,data)) return;
+  if(resultsRunId===data.quest.id && ['victory','returned'].includes(data.quest.status))return;
   live.watch(data);
   if(pushed && encounter?.id===data.id && encounter?.revision===data.revision) return;
   encounter = data; localStorage.setItem(savedKey(), data.id);
+  $('quest-results').hidden=true;resultsRunId=null;
+  $('log').closest('section').hidden=false;
   updateHome();
   history.replaceState(null, '', './index.html?encounter=' + data.id);
   $('combat').hidden = false; $('no-encounter').hidden=true; if(!pushed) villageTabs.select('encounter');
@@ -106,7 +110,9 @@ function render(data, pushed=false) {
     if(data.quest.status==='returned') $('camp-description').textContent='Safe return. Loot and push bonuses have been claimed.';
     $('group-loot').replaceChildren();
     const heading=document.createElement('strong');heading.textContent=group.loot_claimed?'Loot claimed':'Loot at risk - per survivor';
-    const stash=document.createElement('p');stash.textContent=group.stash.length ? group.stash.map(d=>`${d.name} (${d.consumable_slug ? 'x' + d.quantity : d.base_damage + ' damage'})`).join(' | ') : 'No unclaimed items.';
+    const stash=document.createElement('div');stash.className='results-loot-list';
+    if(!group.stash.length)stash.textContent='No unclaimed items.';
+    for(const drop of group.stash){const chip=document.createElement('span');chip.className='results-loot-item';chip.dataset.rarity=drop.rarity||'common';chip.textContent=`${drop.name} (${drop.consumable_slug?'x'+drop.quantity:drop.base_damage+' damage'})${drop.rarity?' · '+drop.rarity:''}`;stash.append(chip);}
     const next=document.createElement('p');next.textContent=`Next clear: ${group.next_loot_tier} loot table / ${group.next_loot_chance_percent}% chance of an item, otherwise no drop. Better tiers come from clearing more groups; resting does not reset loot tiers.`;
     const bank=document.createElement('p');bank.textContent=Object.entries(data.quest.run_gains || {}).map(([id,g])=>(data.participants.find(p=>p.id===id)?.name || 'Adventurer') + ': ' + g.gold + ' gold / ' + g.experience + ' XP banked').join(' | ');
     if(data.quest.journey.death_policy==='rescue_on_return') bank.textContent += ' Downed allies recover on safe return but forfeit their run gains.';
@@ -155,6 +161,13 @@ function render(data, pushed=false) {
     }
   }
   controls();
+  if(data.quest.status==='victory' && !data.gauntlet)showQuestResults(data.quest.id);
+}
+async function showQuestResults(runId){
+  if(resultsRunId===runId)return;
+  resultsRunId=runId;
+  try {const result=await api('/quest-runs/'+encodeURIComponent(runId)+'/results');questResults.render(result);$('combat').hidden=true;$('no-encounter').hidden=true;$('log').closest('section').hidden=true;villageTabs.select('encounter');history.replaceState(null,'','./index.html?results='+encodeURIComponent(runId));}
+  catch(error){resultsRunId=null;$('error').textContent=error.message;}
 }
 $('create').addEventListener('submit', (event) => {
   event.preventDefault(); run(async () => {
@@ -171,11 +184,13 @@ $('return-village').onclick=()=>run(async()=>{
   if(encounter.quest.can_continue){
     const returned=await api(`/encounters/${encounter.id}/continue`,{return_to_village:true});
     if(encounter.gauntlet)render(returned,true);
+    else {await showQuestResults(returned.quest.id);return;}
   }
   if(encounter.gauntlet){
     const id=encounter.gauntlet.id;localStorage.removeItem(savedKey());
     villageTabs.select('gauntlet');await gauntletPanel.showRun(id);return;
   }
+  if(encounter.quest.status==='victory' || encounter.quest.status==='returned'){await showQuestResults(encounter.quest.id);return;}
   localStorage.removeItem(savedKey()); location.href='./index.html?village=1';
 });
 $('continue').onclick = () => run(async () => render(await api(`/encounters/${encounter.id}/continue`, encounter.quest.requires_choice ? {choice:'rest'} : {})));
@@ -305,6 +320,7 @@ function renderActions() {
     const weapons=actor?.weapons || (actor?.equipped_weapon ? [actor.equipped_weapon] : []);
     const compatible=weapons.filter(w=>!choice.allowed_weapon_tags?.length || choice.allowed_weapon_tags.some(t=>w.tags?.includes(t)));
     $('combat-weapon').replaceChildren(...compatible.map(w=>new Option(`${w.name} (${w.base_damage} damage)${w.effects?.length?' · '+w.effects.map(e=>e.name).join(', '):''}`,w.id)));
+    for(const option of $('combat-weapon').options){const weapon=compatible.find(w=>w.id===option.value);if(weapon)option.textContent+=' · '+(weapon.rarity||'common').toUpperCase();}
     if(!compatible.length) $('combat-weapon').append(new Option('No compatible weapon',''));
     const preferred=compatible.find(w=>w.id===previousWeapon) || compatible.find(w=>w.id===actor?.equipped_weapon?.id);
     if(preferred) $('combat-weapon').value=preferred.id;
@@ -351,6 +367,7 @@ function showLoggedOut() {
   history.replaceState(null, '', './index.html');
   $('game').hidden = true; $('login-panel').hidden = false;
   $('combat').hidden = true; $('roster').replaceChildren(); $('log').replaceChildren();
+  $('quest-results').hidden=true;resultsRunId=null;
   characterWorkspace.update([]);
   questLobby.update([],[]);
   $('resume-id').value = ''; $('password').value = '';
@@ -376,6 +393,8 @@ async function loadAccount(user) {
   drawBulletin(await api('/contracts'));
   villageQuestTemplates=await api('/quest-templates');renderQuestCards();
   if(new URLSearchParams(location.search).has('village')) { localStorage.removeItem(savedKey()); encounter=null; $('combat').hidden=true; $('no-encounter').hidden=false; villageTabs.select('home');updateHome(); return; }
+  const resultId=new URLSearchParams(location.search).get('results');
+  if(resultId){await showQuestResults(resultId);return;}
   const saved = new URLSearchParams(location.search).get('encounter') || localStorage.getItem(savedKey());
   if (saved) {
     $('resume-id').value = saved;
@@ -456,6 +475,7 @@ const bestiary=document.createElement('section'); bestiary.append(...villageArea
 const rosterStore=$('roster');rosterStore.hidden=true;$('game').append(rosterStore);
 villageArea.remove();
 const noEncounter=document.createElement('p'); noEncounter.id='no-encounter'; noEncounter.textContent='Your next adventure starts in Quests. An active encounter will appear here.';
+const questResults=GameQuestResults($('quest-results'),()=>{localStorage.removeItem(savedKey());location.href='./index.html?village=1';});
 const villageHost=document.createElement('div');villageHost.className='menu-shell'; $('game').append(villageHost);
 const homePanel=GameHome({news:window.VillageNews || [],
   navigate:destination=>{
@@ -553,7 +573,7 @@ const villageTabs=GameUI.tabs(villageHost,[
   {key:'shop',label:'Village Shops',nodes:[villageShop]},
   {key:'worldsmith',label:'Worldsmith',nodes:[developerPanel]},
   {key:'gauntlet',label:'Gauntlet',nodes:[gauntletPanel]},
-  {key:'encounter',label:'Encounter',nodes:[noEncounter,$('combat'),$('log').closest('section')]},
+  {key:'encounter',label:'Encounter',nodes:[noEncounter,$('combat'),$('quest-results'),$('log').closest('section')]},
   {key:'bestiary',label:'Bestiary & Testing',nodes:[bestiary]}
 ],undefined,{mobileNav:{label:'Village navigation',primary:['home','journeys','character','gauntlet'],icons:{home:'home',journeys:'map',character:'person',gauntlet:'shield'}}});
 new MutationObserver(()=>{if($('tab-auction-house').getAttribute('aria-selected')==='true')auctionPanel.refresh();}).observe($('tab-auction-house'),{attributes:true,attributeFilter:['aria-selected']});
