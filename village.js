@@ -151,11 +151,12 @@ function render(data, pushed=false) {
     <div class="status-badges">${(p.statuses || []).map(s => `<span title="${escape(GameUI.statusHint(s))}">${escape(GameUI.statusLabel(s))}</span>`).join('')}${Object.entries(p.resources || {}).map(([name, amount]) => `<span>${escape(name)}: ${amount}</span>`).join('')}</div>
     ${Object.entries(p.status_resistances || {}).filter(([s,r]) => r > 0).map(([s,r]) => `<small class="muted">${escape(s)}: ${r === 100 ? 'immune' : r + '% resistant'}</small>`).join(' &middot; ')}
     </div>`).join('');
+  if(window.GameIcons)$('combatants').querySelectorAll('.combatant.enemy').forEach((card,index)=>card.prepend(GameIcons.element(data.enemies[index].icon_path)));
   $('battlefield-glance').replaceChildren(...data.enemies.filter(enemy=>enemy.hp>0).map(enemy=>{
     const card=document.createElement('div'),name=document.createElement('strong'),health=document.createElement('span'),intent=document.createElement('small');
     card.className='battlefield-glance-card';name.textContent=enemy.name;health.textContent=`${enemy.hp}/${enemy.max_hp} HP`;
     intent.textContent=enemy.next_move?`Next: ${enemy.next_move.name}`:'Next move unknown';
-    card.append(name,health,intent);return card;
+    if(window.GameIcons)card.append(GameIcons.element(enemy.icon_path));card.append(name,health,intent);return card;
   }));
   const previous = $('actor').value;
   $('actor').replaceChildren(...data.participants.filter(p => data.pending_actor_ids.includes(p.id) && [...document.querySelectorAll('#roster input')].some(input => input.value === p.id)).map(p => new Option(p.name, p.id)));
@@ -307,14 +308,14 @@ function renderActions() {
   $('action-buttons').replaceChildren(...branchChoices.map(choice=>{
     const button=document.createElement('button');button.type='button';button.dataset.choice=choice.kind+':'+choice.slug;
     const title=document.createElement('strong'); title.textContent=choice.name;
-    button.append(title,document.createElement('small'));
+    if(window.GameIcons)button.append(GameIcons.element(choice.icon_path));button.append(title,document.createElement('small'));
     button.onclick=()=>{selectedAction=choice;renderActions();$('action-use').focus({preventScroll:true});};return button;
   }));
   if(actionBranch && !branchChoices.length) $('action-buttons').textContent=actionBranch==='items' ? 'No usable items in your pocket dimension.' : 'No learned skills in this category.';
   $('action-detail').hidden=!selectedAction;
   if(selectedAction) {
     const choice=selectedAction;
-    $('action-name').textContent=choice.name;
+    $('action-name').textContent=choice.name;if(window.GameIcons)$('action-name').prepend(GameIcons.element(choice.icon_path));
     $('action-description').textContent=(choice.description || '') + (choice.target_type==='self' ? ' Targets yourself.' : choice.target_type==='party' ? ' Targets your party.' : '') + (choice.cooldown_turns ? ` Cooldown: ${choice.cooldown_turns} turns.` : choice.cooldown_seconds ? ` Cooldown: ${choice.cooldown_seconds} seconds.` : '');
     if(choice.kind==='ability')$('action-description').textContent += ` Current ${choice.effect==='guard'?`Guard: ${choice.guard_percent??60}%`:choice.damage_multiplier!=null?`multiplier: ${choice.damage_multiplier}×`:`power: ${choice.damage??0}`}.` + ((choice.effect_chain||[]).length?` Follow-ups: ${choice.effect_chain.map(s=>`${s.effect} → ${s.recipient}`).join('; ')}.`:'');
     $('enemy-field').hidden=choice.target_type!=='enemy';
@@ -569,7 +570,7 @@ const developerPanel=document.createElement('section');developerPanel.className=
 let worldsmithWorkspace=null,worldsmithPromise=null;
 function loadWorldsmithScript(file){
   return new Promise((resolve,reject)=>{
-    const script=document.createElement('script');script.src=`./${file}?v=catalog-icons1`;
+    const script=document.createElement('script');script.src=`./${file}?v=encounter-icons2`;
     script.onload=resolve;script.onerror=()=>{script.remove();reject(new Error('Could not load Worldsmith. Open the tab again to retry.'));};
     document.head.append(script);
   });

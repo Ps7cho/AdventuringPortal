@@ -26,7 +26,9 @@ window.GameCatalogEditor = function(api, onSaved) {
     for(const field of schema.fields){
       const label=el('label',field.name.replaceAll('_',' ') + (field.primary_key?' (key)':'') + (field.nullable?' · optional':''));
       let input;
-      if(field.name==='icon_path'&&window.GameIcons){
+      if(field.name==='icon_path'&&catalog==='quests'){
+        input=el('input');input.type='hidden';input.value=initial[field.name]??'';label.hidden=true;
+      } else if(field.name==='icon_path'&&window.GameIcons){
         input=el('input');input.type='hidden';input.value=initial[field.name]??'';
         label.append(GameIcons.picker(input));
       } else if(field.type==='json'){

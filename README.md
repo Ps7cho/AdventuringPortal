@@ -1,6 +1,7 @@
 # Mosswood Public Client Template
 
-Worldsmith objects start with a blank icon frame. Select an object, choose **Edit**,
+Worldsmith objects, except quests (journeys, raids, and epics), start with a blank
+icon frame. Select an object, choose **Edit**,
 then use the icon picker to search the 1,464 bundled WebP assets or filter by
 category. Choose **Review changes** and **Save to database** to persist an assignment;
 **Use blank icon** clears it. Publish `icons.js` and the complete `assets/icons`

@@ -67,7 +67,7 @@ function renderJourneyChoices(host, templates, depart, selectedKind = null, sele
       const rules=template.journey, raid=rules.raid;
       const card=document.createElement('article');card.className='journey-card';
       const rank=(rules.required_rank||'iron').toLowerCase(),banner=questRankBanner(rank,'',template.rank_index);
-      if(window.GameIcons)card.append(GameIcons.element(template.icon_path));card.append(banner,make('h3',template.name),make('p',template.region,'muted'));
+      card.append(banner,make('h3',template.name),make('p',template.region,'muted'));
       if(raid)card.append(make('small',raid.cadence.toUpperCase()+' RAID','quest-raid-cadence'));
       if(raid?.rotation) card.append(raidCountdown(raid.rotation));
       if(raid?.rotation) card.append(raidCompletionBadge(template.name, raid.rotation));
