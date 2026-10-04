@@ -8,6 +8,11 @@ let loginRequested = false;
 let resultsRunId=null;
 let signedInUser = null;
 const savedKey = () => `encounter-id:${signedInUser.id}`;
+const finishedGauntlet = data => data.gauntlet && ['failed', 'retired'].includes(data.gauntlet.status);
+function forgetGauntletEncounter() {
+  localStorage.removeItem(savedKey());
+  history.replaceState(null, '', './index.html');
+}
 let enemyCatalog = [];
 let pendingVillage=null, villageHeroes=[], villageParties=[], villageQuestTemplates=[], friendFeedError=false;
 function updateHome() { homePanel.update({parties:villageParties,heroes:villageHeroes,signedIn:Boolean(signedInUser),error:friendFeedError,encounterId:encounter?.state==='player_turn' ? encounter.id : null}); }
@@ -75,11 +80,13 @@ function render(data, pushed=false) {
   if(resultsRunId===data.quest.id && ['victory','returned'].includes(data.quest.status))return;
   live.watch(data);
   if(pushed && encounter?.id===data.id && encounter?.revision===data.revision) return;
-  encounter = data; localStorage.setItem(savedKey(), data.id);
+  encounter = data;
+  if(finishedGauntlet(data)) forgetGauntletEncounter();
+  else localStorage.setItem(savedKey(), data.id);
   $('quest-results').hidden=true;resultsRunId=null;
   $('log').closest('section').hidden=false;
   updateHome();
-  history.replaceState(null, '', './index.html?encounter=' + data.id);
+  if(!finishedGauntlet(data)) history.replaceState(null, '', './index.html?encounter=' + data.id);
   $('combat').hidden = false; $('no-encounter').hidden=true; if(!pushed) villageTabs.select('encounter');
   $('status').textContent = `Turn ${data.turn} - ${data.state.replaceAll('_', ' ')}`;
   $('encounter-id').textContent = data.id;
@@ -187,7 +194,7 @@ $('return-village').onclick=()=>run(async()=>{
     else {await showQuestResults(returned.quest.id);return;}
   }
   if(encounter.gauntlet){
-    const id=encounter.gauntlet.id;localStorage.removeItem(savedKey());
+    const id=encounter.gauntlet.id;forgetGauntletEncounter();
     villageTabs.select('gauntlet');await gauntletPanel.showRun(id);return;
   }
   if(encounter.quest.status==='victory' || encounter.quest.status==='returned'){await showQuestResults(encounter.quest.id);return;}
@@ -398,7 +405,12 @@ async function loadAccount(user) {
   const saved = new URLSearchParams(location.search).get('encounter') || localStorage.getItem(savedKey());
   if (saved) {
     $('resume-id').value = saved;
-    render(await api('/encounters/' + encodeURIComponent(saved)),!new URLSearchParams(location.search).has('encounter'));
+    const restored=await api('/encounters/' + encodeURIComponent(saved));
+    if(finishedGauntlet(restored)) {
+      forgetGauntletEncounter();
+      villageTabs.select('gauntlet');
+      await gauntletPanel.showRun(restored.gauntlet.id);
+    } else render(restored,!new URLSearchParams(location.search).has('encounter'));
   }
 }
 function renderAccount(user) {
