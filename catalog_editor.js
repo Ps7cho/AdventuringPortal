@@ -26,7 +26,10 @@ window.GameCatalogEditor = function(api, onSaved) {
     for(const field of schema.fields){
       const label=el('label',field.name.replaceAll('_',' ') + (field.primary_key?' (key)':'') + (field.nullable?' · optional':''));
       let input;
-      if(field.type==='json'){
+      if(field.name==='icon_path'&&window.GameIcons){
+        input=el('input');input.type='hidden';input.value=initial[field.name]??'';
+        label.append(GameIcons.picker(input));
+      } else if(field.type==='json'){
         input=el('textarea');label.className='editor-json';input.value=initial[field.name]===null?'':JSON.stringify(initial[field.name],null,2);
         label.append(el('small',field.name==='journey'?'Source quest rules, including loot tables, push tiers, stages, and rewards. Chances are percentages; item weights determine the split within a table.':'JSON object or array. Use stable slugs and IDs from the catalogs for references.'));
       } else if(catalog==='quests'&&field.name==='region'){

@@ -26,6 +26,7 @@ window.GameEquipmentInventory = (host, {api, reload, id}) => {
     const pane=get('[data-inspector]');pane.replaceChildren();const item=entries.find(e=>e.key===selected);
     if(!item){pane.append(node('p','Select an item to inspect it.'));return;}
     pane.dataset.rarity=itemRarity(item)?rarity(item):'common';
+    if(window.GameIcons)pane.append(GameIcons.element(item.icon_path));
     pane.append(node('p',item.category.toUpperCase(),'eyebrow'),node('h3',item.name));
     if(item.description)pane.append(node('p',item.description));
     if(item.weapon_type || item.item_type==='gear'){
@@ -67,7 +68,7 @@ window.GameEquipmentInventory = (host, {api, reload, id}) => {
     get('[data-count]').textContent=filtered.length+' of '+entries.length+' item entries';
     const grid=get('[data-items]');grid.replaceChildren();
     for(const item of filtered){const b=node('button','','inventory-card');b.type='button';b.setAttribute('aria-pressed',String(selected===item.key));if(itemRarity(item))b.dataset.rarity=rarity(item);
-      b.append(node('small',equipped(item)?'EQUIPPED':item.category.toUpperCase()),node('strong',item.name),node('span',item.weapon_type?item.base_damage+' damage':item.item_type==='gear'?item.slot+' ? '+bonuses(item):'? '+(item.quantity || 1)));
+      if(window.GameIcons)b.append(GameIcons.element(item.icon_path));b.append(node('small',equipped(item)?'EQUIPPED':item.category.toUpperCase()),node('strong',item.name),node('span',item.weapon_type?item.base_damage+' damage':item.item_type==='gear'?item.slot+' ? '+bonuses(item):'? '+(item.quantity || 1)));
       if(itemRarity(item))b.append(node('small',rarity(item).toUpperCase()+' · '+(item.effect_slots||0)+' effect slots','item-rarity-label'),slots(item));
       if(item.effects?.length)b.append(node('span',item.effects.map(effect=>effect.name).join(', ')));
       b.onclick=()=>{selected=item.key;draw();};grid.append(b);}
@@ -80,7 +81,7 @@ window.GameEquipmentInventory = (host, {api, reload, id}) => {
     if(selected && !entries.some(e=>e.key===selected))selected=null;
     get('[data-gold]').textContent=hero.gold+' gold';const slots=get('[data-slots]');slots.replaceChildren();
     for(const [slot,item] of Object.entries(hero.equipment)){
-      const b=node('button','','equipped-slot');b.type='button';if(item)b.dataset.rarity=rarity(item);b.append(node('small',slot),node('strong',item?.name || 'Empty'));if(item)b.append(node('small',rarity(item).toUpperCase()+' · '+(item.effect_slots||0)+' slots','item-rarity-label'));
+      const b=node('button','','equipped-slot');b.type='button';if(item)b.dataset.rarity=rarity(item);if(window.GameIcons)b.append(GameIcons.element(item?.icon_path));b.append(node('small',slot),node('strong',item?.name || 'Empty'));if(item)b.append(node('small',rarity(item).toUpperCase()+' · '+(item.effect_slots||0)+' slots','item-rarity-label'));
       b.onclick=()=>{if(item){selected=item.id;draw();}else{get('[data-category]').value=slot==='Main Hand'?'weapon':'gear';get('[data-search]').value=slot==='Main Hand'?'':slot;draw();}};slots.append(b);
     }
     const totals={};for(const item of Object.values(hero.equipment))for(const [k,v] of Object.entries(item?.bonuses || {}))totals[k]=(totals[k] || 0)+v;

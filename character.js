@@ -179,7 +179,7 @@ async function renderSheet(snapshot) {
     const values=document.createElement('small');values.textContent=(ability.effect_type==='guard'?`Guard ${ability.guard_percent??60}%`:ability.damage_multiplier==null?`Power ${ability.power}`:`Multiplier ${ability.damage_multiplier}×`) + ` · Targets ${ability.max_targets??'all'}` + ((ability.effect_chain||[]).length?` · ${ability.effect_chain.length} follow-up effects`:'');
     values.textContent += ability.trigger_mode==='on_hit'?` | Passive: ${ability.proc_chance_percent??100}% when hit`:'';
     if(ability.effect_type==='damage')values.textContent+=` | ${ability.strike_count??1} strikes | ${ability.extra_strike_chance??0}% repeat (max +${ability.max_extra_strikes??1})`;
-    card.append(badge,name,description,values,details,equip); $('abilities').append(card);
+    if(window.GameIcons)card.append(GameIcons.element(ability.icon_path));card.append(badge,name,description,values,details,equip); $('abilities').append(card);
   }
   $('resume').hidden = !hero.active_encounter_id; $('resume').href = './index.html?encounter=' + hero.active_encounter_id;
   await loadParty(snapshot?.parties);

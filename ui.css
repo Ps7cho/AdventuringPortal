@@ -412,3 +412,21 @@ details { background:var(--panel); border:1px solid var(--line); padding:12px 16
 @media(max-width:700px){.quest-results{padding:8px 0 90px}.results-totals{grid-template-columns:repeat(2,minmax(0,1fr))}.results-charts{grid-template-columns:1fr}.results-party-row{grid-template-columns:repeat(3,minmax(0,1fr))}.results-party-row strong{grid-column:1/-1}.results-bar-row{grid-template-columns:minmax(65px,1fr) minmax(70px,2fr) auto}}
 .market-card[data-rarity=common]{--rarity-color:#fff;--rarity-glow:transparent}.market-card[data-rarity=uncommon]{--rarity-color:#5bdc75;--rarity-glow:#5bdc7540}.market-card[data-rarity=rare]{--rarity-color:#5ca5ff;--rarity-glow:#5ca5ff55}.market-card[data-rarity=epic]{--rarity-color:#c887ff;--rarity-glow:#c887ff66}.market-card[data-rarity=legendary]{--rarity-color:#ffad4f;--rarity-glow:#ffad4f80}.market-card[data-rarity] h3,.market-card[data-rarity] .item-rarity-label{color:var(--rarity-color);text-shadow:0 0 9px var(--rarity-glow)}.market-card[data-rarity=rare],.market-card[data-rarity=epic],.market-card[data-rarity=legendary]{border-color:var(--rarity-color);box-shadow:0 0 14px var(--rarity-glow)}
 .raid-countdown{display:inline-flex;align-items:center;width:max-content;max-width:100%;margin:8px 0;padding:7px 10px;border:1px solid #7d6a40;border-radius:6px;background:#2c281e;color:#ffda8e;font-variant-numeric:tabular-nums;font-weight:700;letter-spacing:.03em}
+/* Catalog artwork keeps an empty frame until Worldsmith assigns an asset. */
+.object-icon{display:inline-flex;width:48px;height:48px;flex:0 0 48px;align-items:center;justify-content:center;vertical-align:middle;border:1px solid var(--line,#40534e);border-radius:8px;background:var(--panel,#14201d);overflow:hidden;box-sizing:border-box}
+.object-icon img{width:100%;height:100%;object-fit:contain}
+.object-identity{display:grid;grid-template-columns:48px minmax(0,1fr);column-gap:12px;align-items:center}
+.object-identity>.object-icon{grid-row:1/3}
+.object-identity h3,.object-identity small{grid-column:2}
+.studio-detail-head .object-icon{margin-bottom:10px}
+.icon-picker{grid-column:1/-1;border:1px solid var(--line,#40534e);border-radius:8px;padding:12px;min-width:0}
+.catalog-editor label:has(.icon-picker){grid-column:1/-1}
+.icon-picker-current,.icon-picker-controls,.icon-picker-pages{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:10px 0}
+.icon-picker-current>span:nth-child(2){flex:1;overflow-wrap:anywhere}
+.icon-picker-controls>input,.icon-picker-controls>select{flex:1;min-width:160px;width:auto}
+.icon-picker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px;max-height:320px;overflow:auto;padding:4px}
+.icon-picker .icon-choice{display:flex;flex-direction:column;gap:5px;align-items:center;padding:8px;min-width:0;background:var(--panel,#14201d);color:var(--text,#e4eee9);border:1px solid var(--line,#40534e);border-radius:6px}
+.icon-choice[aria-pressed=true]{outline:2px solid var(--accent,#a8c8a1);outline-offset:1px}
+.icon-choice small{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}
+.icon-choice:focus-visible{outline:2px solid var(--accent,#a8c8a1)}
+.inventory-item>.object-icon,.equipped-slot>.object-icon{margin-bottom:6px}

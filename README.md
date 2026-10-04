@@ -1,5 +1,12 @@
 # Mosswood Public Client Template
 
+Worldsmith objects start with a blank icon frame. Select an object, choose **Edit**,
+then use the icon picker to search the 1,464 bundled WebP assets or filter by
+category. Choose **Review changes** and **Save to database** to persist an assignment;
+**Use blank icon** clears it. Publish `icons.js` and the complete `assets/icons`
+folder with this client. The backend must include migration `040_catalog_icons`
+and `app/icon_manifest.json`. Startup applies the migration to existing databases.
+
 For this local setup, see [LOCAL-SETUP.md](LOCAL-SETUP.md).
 
 Affliction abilities use the same encounter action endpoint as other abilities.
