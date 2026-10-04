@@ -18,6 +18,28 @@ function questRankBanner(rank, note='', rankIndex=null) {
   return banner;
 }
 
+function raidCountdown(rotation) {
+  const timer=document.createElement('small');timer.className='raid-countdown';timer.setAttribute('role','timer');
+  timer.dataset.raidReset=rotation.resets_at;
+  timer.dataset.serverTime=rotation.server_time||new Date().toISOString();
+  timer.dataset.anchorTime=String(Date.now());
+  timer.title='Refreshes '+new Date(rotation.resets_at).toLocaleString();
+  timer.textContent='Raid refresh countdown loading…';
+  return timer;
+}
+
+function tickRaidCountdowns() {
+  let expired=false;
+  for(const timer of document.querySelectorAll('.raid-countdown')) {
+    const initial=Date.parse(timer.dataset.raidReset)-Date.parse(timer.dataset.serverTime);
+    const left=Math.max(0,initial-(Date.now()-Number(timer.dataset.anchorTime)));
+    if(left===0){timer.textContent='Raid refreshing…';expired=true;continue;}
+    const seconds=Math.ceil(left/1000),days=Math.floor(seconds/86400),hours=Math.floor(seconds%86400/3600),minutes=Math.floor(seconds%3600/60),remainder=seconds%60;
+    timer.textContent=`Refresh in ${days?days+'d ':''}${String(hours).padStart(2,'0')}:${String(minutes).padStart(2,'0')}:${String(remainder).padStart(2,'0')}`;
+  }
+  return expired;
+}
+
 function renderJourneyChoices(host, templates, depart, selectedKind = null, selectedRankIndex = null) {
   host.replaceChildren(); host.className='journey-browser';
   const playable=templates.filter(t=>t.journey?.stages?.length);
@@ -47,7 +69,7 @@ function renderJourneyChoices(host, templates, depart, selectedKind = null, sele
       const rank=(rules.required_rank||'iron').toLowerCase(),banner=questRankBanner(rank,'',template.rank_index);
       card.append(banner,make('h3',template.name),make('p',template.region,'muted'));
       if(raid)card.append(make('small',raid.cadence.toUpperCase()+' RAID','quest-raid-cadence'));
-      if(raid?.rotation) card.append(make('small','Resets ' + new Date(raid.rotation.resets_at).toLocaleString() + ' (your time)','muted'));
+      if(raid?.rotation) card.append(raidCountdown(raid.rotation));
       if(raid?.rotation) card.append(raidCompletionBadge(template.name, raid.rotation));
       const button=make('button','Review quest & gather party');
       button.type='button';button.dataset.questTemplate=template.slug;button.onclick=()=>depart(template);card.append(button);
@@ -101,6 +123,7 @@ window.GameQuestLobby = ({api,startSolo,onEncounter,recoverDeparture,refreshPart
     const facts=make('div','','quest-lobby-facts');
     for(const [label,value] of [['Route',count],['Battle rewards',`${rules.gold||0} gold · ${rules.experience||0} XP`],['Completion bounty',`${rules.completion_gold||0} gold · ${rules.completion_experience||0} XP`],['Camp rests',String(rules.max_rests||0)]]) {const fact=make('div','');fact.append(make('small',label),make('strong',value));facts.append(fact);}
     brief.append(facts);
+    if(raid?.rotation)brief.append(raidCountdown(raid.rotation));
     const enemies=make('section','','quest-lobby-section');enemies.append(make('h4','Enemy pool'),make('p',(entry.enemy_pool||[]).join(' · ')||'Route-defined enemies.'));brief.append(enemies);
     const route=make('section','','quest-lobby-section');route.append(make('h4',raid?'Boss route':'Route stages'));const stages=make('ol','');
     if(raid) stages.append(make('li','Boss encounters: '+(raid.rotation?.boss_encounters||[]).join(', ')+'.'));
@@ -155,6 +178,7 @@ window.GameQuestLobby = ({api,startSolo,onEncounter,recoverDeparture,refreshPart
   get('[data-lobby-join]').onsubmit=event=>{event.preventDefault();task(async()=>{const form=event.currentTarget,joined=await api('/parties/join',{adventurer_id:selectedHeroId(),code:new FormData(form).get('code').trim()});form.reset();await sync(joined.id);status.textContent='Party joined. Review the proposed quest and ready up.';});};
   get('[data-lobby-back]').onclick=()=>goBack(type==='contract'?'bulletin':entry?.journey?.kind||'quest');
   root.open=(value,entryType='template')=>{entry=value;type=entryType;risk.checked=routeMatches(party())?Boolean(party().selection.accept_rank_risk):false;get('[data-lobby-kind]').textContent=type==='contract'?'RECOVERY CONTRACT LOBBY':`${entry.journey?.kind||'quest'} lobby`;get('[data-lobby-title]').textContent=entry.title||entry.name;get('[data-lobby-region]').textContent=entry.region||'';codeWrap.hidden=true;status.textContent='';renderBrief();renderParty();};
+  root.refreshTemplate=value=>{if(type==='template'&&entry?.slug===value.slug){entry=value;renderBrief();renderParty();}};
   root.update=(rows,partyRows)=>{heroes=(rows||[]).filter(row=>row.is_alive);parties=partyRows||[];syncPartySelect();renderParty();};
   return root;
 };
