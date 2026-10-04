@@ -63,7 +63,7 @@
       }
       const data = await response.json().catch(() => null);
       if (!response.ok) {
-        if (response.status === 401 && !login) clearSession();
+        if (response.status === 401 && !login && token() === accessToken) clearSession();
         const detail = data?.detail;
         const message = typeof detail === "string" ? detail : detail?.message ||
           (Array.isArray(detail) ? detail.map(item => item.msg).join("; ") : `Request failed (${response.status}).`);

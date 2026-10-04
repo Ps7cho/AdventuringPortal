@@ -4,6 +4,7 @@ let encounter = null;
 const liveStatus=document.createElement('small'); liveStatus.id='encounter-live-status'; liveStatus.setAttribute('role','status'); $('status').after(liveStatus);
 const live=window.GameLive?.connect(GameApi.baseUrl,()=>GameApi.liveToken?.(),data=>render(data,true),value=>{liveStatus.textContent=value;}) || {watch(){liveStatus.textContent='Live updates unavailable';},close(){}};
 let busy = false;
+let loginRequested = false;
 let signedInUser = null;
 const savedKey = () => `encounter-id:${signedInUser.id}`;
 let enemyCatalog = [];
@@ -390,6 +391,7 @@ function renderAccount(user) {
 }
 $('login-form').addEventListener('submit', event => {
   event.preventDefault();
+  loginRequested=true;
   const mode = event.submitter?.value || 'login';
   run(async () => {
     const result = await api('/auth/' + mode, {username: $('username').value, password: $('password').value});
@@ -517,7 +519,27 @@ function drawVillageShop(){const shopper=villageHeroes.find(h=>h.id===window.Gam
 async function refreshShop(){try{villageShopVillages=await api('/shop/villages');shopVillage.replaceChildren(...villageShopVillages.map(v=>new Option(v.name,v.slug)));if(!shopVillage.value&&shopVillage.options.length)shopVillage.selectedIndex=0;const village=villageShopVillages.find(v=>v.slug===shopVillage.value)||villageShopVillages[0],shop=village?.shops?.[0];villageShopCatalog=Object.fromEntries((shop?.tables||[]).map(table=>[table.category,table.items]));drawVillageShop();shopStatus.textContent=village&&shop?`${village.name} · ${shop.name} stock refreshed.`:'No village shops are configured.';}catch(e){shopStatus.textContent=e.message;}}
 shopVillage.onchange=()=>{const village=villageShopVillages.find(v=>v.slug===shopVillage.value),shop=village?.shops?.[0];villageShopCatalog=Object.fromEntries((shop?.tables||[]).map(table=>[table.category,table.items]));drawVillageShop();};
 villageShop.querySelector('[data-shop-refresh]').onclick=refreshShop;
-const developerPanel=GameDebug(api);
+const developerPanel=document.createElement('section');developerPanel.className='worldsmith-loading';developerPanel.textContent='Worldsmith loads when you open it.';
+let worldsmithWorkspace=null,worldsmithPromise=null;
+function loadWorldsmithScript(file){
+  return new Promise((resolve,reject)=>{
+    const script=document.createElement('script');script.src=`./${file}?v=lazy-worldsmith1`;
+    script.onload=resolve;script.onerror=()=>{script.remove();reject(new Error('Could not load Worldsmith. Open the tab again to retry.'));};
+    document.head.append(script);
+  });
+}
+function ensureWorldsmith(){
+  if(worldsmithWorkspace)return Promise.resolve(worldsmithWorkspace);
+  if(!worldsmithPromise)worldsmithPromise=(async()=>{
+    developerPanel.textContent='Loading Worldsmith…';
+    await Promise.all(['ability_designer.js','weapon_designer.js','armor_designer.js'].map(loadWorldsmithScript));
+    await loadWorldsmithScript('catalog_editor.js');
+    await loadWorldsmithScript('debug.js');
+    worldsmithWorkspace=GameDebug(api);developerPanel.replaceWith(worldsmithWorkspace);
+    return worldsmithWorkspace;
+  })().catch(error=>{worldsmithPromise=null;developerPanel.textContent=error.message;throw error;});
+  return worldsmithPromise;
+}
 const gauntletPanel=GameGauntlet({api,onEncounter:data=>render(data)});
 const gauntletSummary=document.createElement('button');gauntletSummary.type='button';gauntletSummary.textContent='Gauntlet Run Summary';gauntletSummary.hidden=true;
 gauntletSummary.onclick=()=>{villageTabs.select('gauntlet');gauntletPanel.showRun(encounter.gauntlet.id);};
@@ -536,7 +558,7 @@ const villageTabs=GameUI.tabs(villageHost,[
 ],undefined,{mobileNav:{label:'Village navigation',primary:['home','journeys','character','gauntlet'],icons:{home:'home',journeys:'map',character:'person',gauntlet:'shield'}}});
 new MutationObserver(()=>{if($('tab-auction-house').getAttribute('aria-selected')==='true')auctionPanel.refresh();}).observe($('tab-auction-house'),{attributes:true,attributeFilter:['aria-selected']});
 new MutationObserver(()=>{if($('tab-shop')?.getAttribute('aria-selected')==='true')refreshShop();}).observe($('tab-shop'),{attributes:true,attributeFilter:['aria-selected']});
-new MutationObserver(()=>{if($('tab-worldsmith')?.getAttribute('aria-selected')==='true')developerPanel.refresh();}).observe($('tab-worldsmith'),{attributes:true,attributeFilter:['aria-selected']});
+new MutationObserver(()=>{if($('tab-worldsmith')?.getAttribute('aria-selected')==='true')ensureWorldsmith().then(panel=>{if($('tab-worldsmith').getAttribute('aria-selected')==='true')panel.refresh();}).catch(()=>{});}).observe($('tab-worldsmith'),{attributes:true,attributeFilter:['aria-selected']});
 new MutationObserver(()=>{if($('tab-gauntlet')?.getAttribute('aria-selected')==='true')gauntletPanel.refresh();}).observe($('tab-gauntlet'),{attributes:true,attributeFilter:['aria-selected']});
 $('public-home').append(homePanel);
 GameUI.hint($('wait'),'Spend your action waiting. Enemies still act, and turn cooldowns advance.');
@@ -552,7 +574,7 @@ if (discordRedirect?.recovery) {
   });
   else $('discord-recovery-status').textContent = 'Enter a new password before starting recovery.';
 }
-run(async () => {
-  try { await loadAccount(await api('/auth/me')); }
-  catch (error) { if (error.status !== 401) throw error; }
-});
+const startupToken=GameApi.liveToken();
+if(startupToken)GameApi.request('/auth/me').then(user=>{
+  if(GameApi.liveToken()===startupToken && !signedInUser && !loginRequested)return loadAccount(user);
+}).catch(error=>{if(error.status!==401 && !signedInUser && !loginRequested)$('error').textContent=error.message;});

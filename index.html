@@ -4,16 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Mosswood Village</title>
-  <link rel="stylesheet" href="./ui.css?v=affliction-health1">
+  <link rel="stylesheet" href="./ui.css?v=startup-equipment1">
 </head>
-<body>
+<body class="game-menu">
 <main>
   <header><h1>Mosswood Village</h1><a href="#" data-api-docs>API Docs</a></header>
   <section id="login-panel">
     <p class="eyebrow">WELCOME TO MOSSWOOD</p>
     <h2>Log in to your adventure</h2>
     <p class="login-intro">Continue your journey, or create an account to begin.</p>
-    <form id="login-form" class="row">
+    <form id="login-form" class="row" onsubmit="return false">
       <label>Username <input id="username" autocomplete="username" minlength="3" maxlength="32" pattern="[a-zA-Z0-9_]+" required></label>
       <label>Password <input id="password" type="password" autocomplete="current-password" minlength="12" maxlength="128" required></label>
       <button type="submit" value="login">Log In</button>
@@ -63,19 +63,14 @@
   <section class="encounter-log"><details><summary>Turn Events</summary><ol id="log" aria-live="polite"></ol></details></section>
   </div>
 </main>
-<script src="./ui.js?v=quest-swipes1"></script>
-<script src="./news.js?v=equipment1"></script>
-<script src="./lobby.js?v=mobile-nav1"></script>
-<script src="./journey_ui.js?v=quest-swipes1"></script>
-<script src="./config.js?v=20260913-village1"></script>
-<script src="./api.js?v=departure-recovery1"></script>
-<script src="./auction_house.js?v=weapon-effects1"></script>
-<script src="./ability_designer.js?v=armor-passives1"></script>
-<script src="./weapon_designer.js?v=weapon-effects1"></script>
-<script src="./armor_designer.js?v=armor-passives1"></script>
-<script src="./catalog_editor.js?v=armor-passives1"></script>
-<script src="./debug.js?v=worldsmith-mobile1"></script>
-<script src="./gauntlet.js?v=decision-menus1"></script>
-<script src="./village.js?v=affliction-health1"></script>
+<script defer src="./ui.js?v=quest-swipes1"></script>
+<script defer src="./news.js?v=equipment1"></script>
+<script defer src="./lobby.js?v=mobile-nav1"></script>
+<script defer src="./journey_ui.js?v=roman-ranks1"></script>
+<script defer src="./config.js?v=20260913-village1"></script>
+<script defer src="./api.js?v=startup-equipment1"></script>
+<script defer src="./auction_house.js?v=weapon-effects1"></script>
+<script defer src="./gauntlet.js?v=decision-menus1"></script>
+<script defer src="./village.js?v=startup-equipment1"></script>
 </body>
 </html>

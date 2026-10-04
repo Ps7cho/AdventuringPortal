@@ -1,6 +1,15 @@
-function questRankBanner(rank, note='') {
+function questRankNumeral(rank,index=null) {
+  const known=['iron','bronze','silver','gold','platinum','diamond','mythic','legendary'];
+  let value=(index==null?known.indexOf(rank.toLowerCase()):Number(index))+1;
+  if(!Number.isInteger(value)||value<1)return 'I';
+  let numeral='';
+  for(const [amount,symbol] of [[1000,'M'],[900,'CM'],[500,'D'],[400,'CD'],[100,'C'],[90,'XC'],[50,'L'],[40,'XL'],[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']])
+    while(value>=amount){numeral+=symbol;value-=amount;}
+  return numeral;
+}
+function questRankBanner(rank, note='', rankIndex=null) {
   const banner=document.createElement('div');banner.className='quest-rank-banner';banner.dataset.rank=rank.toLowerCase();
-  const emblem=document.createElement('span');emblem.className='quest-rank-emblem';emblem.setAttribute('aria-hidden','true');emblem.textContent=rank.charAt(0).toUpperCase();
+  const emblem=document.createElement('span');emblem.className='quest-rank-emblem';emblem.setAttribute('aria-hidden','true');emblem.textContent=questRankNumeral(rank,rankIndex);
   const identity=document.createElement('span');identity.className='quest-rank-identity';
   const label=document.createElement('small');label.textContent='Quest rank';
   const name=document.createElement('strong');name.textContent=rank.toUpperCase();
@@ -35,7 +44,7 @@ function renderJourneyChoices(host, templates, depart, selectedKind = null, sele
     for(const template of routes) {
       const rules=template.journey, raid=rules.raid;
       const card=document.createElement('article');card.className='journey-card';
-      const rank=(rules.required_rank||'iron').toLowerCase(),banner=questRankBanner(rank);
+      const rank=(rules.required_rank||'iron').toLowerCase(),banner=questRankBanner(rank,'',template.rank_index);
       card.append(banner,make('h3',template.name),make('p',template.region,'muted'));
       if(raid)card.append(make('small',raid.cadence.toUpperCase()+' RAID','quest-raid-cadence'));
       if(raid?.rotation) card.append(make('small','Resets ' + new Date(raid.rotation.resets_at).toLocaleString() + ' (your time)','muted'));
@@ -107,7 +116,7 @@ window.GameQuestLobby = ({api,startSolo,onEncounter,recoverDeparture,refreshPart
   function renderParty(){
     const selected=party(),member=selected?.members.find(row=>row.is_yours&&String(row.id)===selectedHeroId()),matches=selectionMatches(selected);
     const chosen=hero(),required=(type==='contract'?entry?.required_rank:entry?.journey?.required_rank)||'iron',rankBanner=get('[data-lobby-rank]');
-    const display=questRankBanner(required,chosen?`${chosen.name}: ${chosen.rank} rank · One rank below can enter with risk confirmation`:'One rank below can enter with risk confirmation');
+    const display=questRankBanner(required,chosen?`${chosen.name}: ${chosen.rank} rank · One rank below can enter with risk confirmation`:'One rank below can enter with risk confirmation',entry?.rank_index);
     rankBanner.dataset.rank=display.dataset.rank;rankBanner.replaceChildren(...display.childNodes);
     heroSelect.textContent=chosen?`${chosen.name} · ${chosen.rank} rank`:'Select a living adventurer in Character';
     roster.replaceChildren();
