@@ -154,7 +154,7 @@ window.GameCatalogEditor = function(api, onSaved) {
     };
     save.onclick=async()=>{
       if(!reviewed||busy)return;error.textContent='';lock(true);
-      try{const result=await api('/catalog-editor',reviewed);dirty=false;dialog.close();await onSaved(catalog,result.record);}
+      try{const result=await api('/catalog-editor',reviewed);dirty=false;dialog.close();window.dispatchEvent(new CustomEvent('game-catalog-saved',{detail:{catalog}}));await onSaved(catalog,result.record);}
       catch(e){error.textContent=e.message;reviewed=null;}
       finally{lock(false);}
     };

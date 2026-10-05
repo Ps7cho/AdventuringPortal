@@ -208,6 +208,15 @@ $('refresh').onclick = () => run(async () => render(await api('/encounters/' + e
 $('actor').onchange = () => { renderActions(); controls(); };
 $('enemy').onchange = renderEnemyDetails;
 let actionBranch = null, selectedAction = null, actionContext = '';
+window.addEventListener('game-catalog-saved',async event=>{
+  if(event.detail?.catalog!=='abilities'||!encounter)return;
+  const id=encounter.id;
+  try{
+    const data=await api('/encounters/'+id);
+    if(encounter?.id!==id||encounter.revision!==data.revision)return;
+    encounter=data;renderActions();
+  }catch(error){console.warn('Encounter artwork refresh failed.',error);}
+});
 function encounterChoices(actor) {
   const abilities = !actor ? [] : actor.effective_abilities || actor.equipped_abilities || [
     {slug:'attack',name:'Attack',effect:'damage',target_type:'enemy'},
@@ -570,7 +579,7 @@ const developerPanel=document.createElement('section');developerPanel.className=
 let worldsmithWorkspace=null,worldsmithPromise=null;
 function loadWorldsmithScript(file){
   return new Promise((resolve,reject)=>{
-    const script=document.createElement('script');script.src=`./${file}?v=encounter-icons2`;
+    const script=document.createElement('script');script.src=`./${file}?v=live-ability-icons3`;
     script.onload=resolve;script.onerror=()=>{script.remove();reject(new Error('Could not load Worldsmith. Open the tab again to retry.'));};
     document.head.append(script);
   });
