@@ -21,7 +21,7 @@ window.GameEquipmentInventory = (host, {api, reload, id}) => {
   }
   function controls(){host.querySelectorAll('[data-mutate]').forEach(b=>b.disabled=blocked() || b.dataset.rankLocked==='true');}
   async function act(work,message){if(busy)return;busy=true;controls();get('[data-gear-status]').textContent='';try{await work();await reload();get('[data-gear-status]').textContent=message;}catch(e){get('[data-gear-status]').textContent=e.message;}finally{busy=false;controls();}}
-  function change(item,remove=false){act(()=>api('/adventurers/'+id+(item.weapon_type?'/weapon':'/equipment'),item.weapon_type?{weapon_id:remove?null:item.id}:{slot:item.slot,gear_id:remove?null:item.id}),remove?'Item unequipped.':'Equipment saved.');}
+  function change(item,remove=false,targetSlot=item.slot){act(()=>api('/adventurers/'+id+(item.weapon_type?'/weapon':'/equipment'),item.weapon_type?{weapon_id:remove?null:item.id}:{slot:targetSlot,gear_id:remove?null:item.id}),remove?'Item unequipped.':'Equipment saved.');}
   function inspect(){
     const pane=get('[data-inspector]');pane.replaceChildren();const item=entries.find(e=>e.key===selected);
     if(!item){pane.append(node('p','Select an item to inspect it.'));return;}
@@ -32,7 +32,17 @@ window.GameEquipmentInventory = (host, {api, reload, id}) => {
     if(item.account_bound)pane.append(node('p','Account bound · Cannot be auctioned','item-rarity-label'));
     if(item.weapon_type || item.item_type==='gear'){
       pane.append(node('p',rarity(item).toUpperCase()+' · '+(item.effect_slots||0)+' effect slots','item-rarity-label'),slots(item));
-      const slot=item.weapon_type?'Main Hand':item.slot, current=hero.equipment[slot];
+      const locations=item.compatible_slots || [item.slot];
+      const wornSlot=Object.entries(hero.equipment).find(([slot,gear])=>gear?.id===item.id)?.[0];
+      let slot=item.weapon_type?'Main Hand':wornSlot || locations.find(s=>!hero.equipment[s]) || locations[0];
+      if(!item.weapon_type && locations.length>1 && !wornSlot){
+        const label=node('label','Equip to '),choice=document.createElement('select');choice.setAttribute('aria-label','Ring slot');
+        for(const location of locations)choice.add(new Option(location+(hero.equipment[location]?' ? '+hero.equipment[location].name:' ? Empty'),location));
+        choice.value=slot;choice.onchange=()=>{item.selectedSlot=choice.value;inspect();};
+        if(locations.includes(item.selectedSlot)){slot=item.selectedSlot;choice.value=slot;}
+        label.append(choice);pane.append(label);
+      }
+      const current=hero.equipment[slot];
       pane.append(node('p',slot+' ? '+(item.required_rank || 'iron')+' rank'));
       if(item.weapon_type){pane.append(node('strong',item.base_damage+' base damage'),node('p',(item.tags || []).join(' ? ')));
         const difference=item.base_damage-(current?.base_damage || 0);pane.append(node('p',`${difference>=0?'+':''}${difference} base damage compared with ${current?.name || 'unarmed'}.`));
@@ -53,7 +63,7 @@ window.GameEquipmentInventory = (host, {api, reload, id}) => {
         const list=node('dl','','gear-comparison');
         for(const key of keys){const delta=(item.bonuses?.[key] || 0)-(current?.bonuses?.[key] || 0);list.append(node('dt',key),node('dd',`${delta>=0?'+':''}${delta}`));}pane.append(node('p','Compared with '+(current?.name || 'empty slot')),list);
       }
-      const button=node('button',equipped(item)?'Unequip':item.weapon_type?'Set Default Weapon':'Equip');button.dataset.mutate='';button.dataset.rankLocked=String(!equipped(item) && !rankAllowed(item));button.onclick=()=>change(item,equipped(item));pane.append(button);
+      const button=node('button',equipped(item)?'Unequip':item.weapon_type?'Set Default Weapon':'Equip');button.dataset.mutate='';button.dataset.rankLocked=String(!equipped(item) && !rankAllowed(item));button.onclick=()=>change(item,equipped(item),slot);pane.append(button);
       if(!rankAllowed(item))pane.append(node('p','Requires '+item.required_rank+' rank.'));
       if(hero.active_encounter_id)pane.append(node('p','Return to the village to change your outfit. Owned weapons can still be selected in combat.'));
     }else if(item.actionNode){pane.append(item.actionNode);}
@@ -83,7 +93,7 @@ window.GameEquipmentInventory = (host, {api, reload, id}) => {
     get('[data-gold]').textContent=hero.gold+' gold';const slots=get('[data-slots]');slots.replaceChildren();
     for(const [slot,item] of Object.entries(hero.equipment)){
       const b=node('button','','equipped-slot');b.type='button';if(item)b.dataset.rarity=rarity(item);if(window.GameIcons)b.append(GameIcons.element(item?.icon_path));b.append(node('small',slot),node('strong',item?.name || 'Empty'));if(item)b.append(node('small',rarity(item).toUpperCase()+' · '+(item.effect_slots||0)+' slots','item-rarity-label'));
-      b.onclick=()=>{if(item){selected=item.id;draw();}else{get('[data-category]').value=slot==='Main Hand'?'weapon':'gear';get('[data-search]').value=slot==='Main Hand'?'':slot;draw();}};slots.append(b);
+      b.onclick=()=>{if(item){selected=item.id;draw();}else{get('[data-category]').value=slot==='Main Hand'?'weapon':'gear';get('[data-search]').value=slot==='Main Hand'?'':slot.startsWith('Ring ')?'Ring':slot;draw();}};slots.append(b);
     }
     const totals={};for(const item of Object.values(hero.equipment))for(const [k,v] of Object.entries(item?.bonuses || {}))totals[k]=(totals[k] || 0)+v;
     get('[data-bonuses]').replaceChildren(node('h4','Outfit bonuses'),node('p',bonuses({bonuses:totals}) || 'No attribute bonuses equipped.'));

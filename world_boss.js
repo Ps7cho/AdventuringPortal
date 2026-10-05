@@ -7,7 +7,7 @@ window.GameWorldBoss = ({api,isSignedIn,hero,onReview,onClaimed}) => {
     <p data-world-settings-help hidden>Turning this on arms permanent deletion of every adventurer, inventory, and progression record if the timer expires. Accounts remain. Victory then unlocks beta. Changes apply to the current event too.</p>
     <div class="world-boss-stats"><strong data-world-health>10,000,000 HP</strong><strong data-world-timer>Loading schedule…</strong><span data-world-parties></span></div>
     <progress data-world-bar aria-label="Alpha Wolf shared health" max="10000000" value="10000000"></progress>
-    <p data-world-phase></p><p>Reward: a five-piece epic Wolf Sovereign set, earned once per contributing account per event. Account bound; cannot be auctioned.</p>
+    <p data-world-phase></p><p>Reward: a nine-piece epic Wolf Sovereign set, earned once per contributing account per event. Account bound; cannot be auctioned.</p>
     <div class="row"><button type="button" data-world-join disabled>Review event & gather party</button><button type="button" data-world-refresh>Refresh event</button><button type="button" data-world-claim hidden>Claim epic set</button></div>
     <p data-world-message role="status"></p>`;
   const get=s=>panel.querySelector(s);let data=null,pending=false,offset=0;

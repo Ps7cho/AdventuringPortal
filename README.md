@@ -23,7 +23,7 @@ defaults off and persists on the server. Off: deadlines retain adventurers and
 release parties, and victories continue nightly testing. On: failure permanently
 deletes all adventurers, inventories, and progression while keeping accounts;
 victory stores beta and stops future events. Changing the switch affects an active
-event too. Turning it off after beta resumes nightly testing. Contributing accounts earn one five-piece epic Wolf Sovereign set; the
+event too. Turning it off after beta resumes nightly testing. Contributing accounts earn one nine-piece epic Wolf Sovereign set; the
 server rejects auctioning its account-bound pieces.
 
 Deploy backend migrations `041_alpha_finale` and `042_world_boss_testing` and the updated frontend together.
@@ -170,3 +170,9 @@ origin for a public release. Do not publish browser storage exports or login res
 This is a snapshot of the reference UI. Backend code and tests are intentionally
 excluded. Review this folder's files when extending the template; do not copy `.env`,
 server logs, screenshots of private accounts, databases, or virtual environments.
+
+Characters have shoulders, bracers, belt, cape, amulet, and two separate ring slots.
+Select a ring in inventory and choose Ring 1 or Ring 2 before equipping.
+Migration `043_full_equipment` preserves an existing equipped ring in Ring 1 and
+adds missing pieces to claimed Wolf Sovereign sets whose reward items still exist.
+The full set contains nine armor pieces. Amulets and rings are separate accessories.
