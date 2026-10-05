@@ -29,6 +29,7 @@ window.GameEquipmentInventory = (host, {api, reload, id}) => {
     if(window.GameIcons)pane.append(GameIcons.element(item.icon_path));
     pane.append(node('p',item.category.toUpperCase(),'eyebrow'),node('h3',item.name));
     if(item.description)pane.append(node('p',item.description));
+    if(item.account_bound)pane.append(node('p','Account bound · Cannot be auctioned','item-rarity-label'));
     if(item.weapon_type || item.item_type==='gear'){
       pane.append(node('p',rarity(item).toUpperCase()+' · '+(item.effect_slots||0)+' effect slots','item-rarity-label'),slots(item));
       const slot=item.weapon_type?'Main Hand':item.slot, current=hero.equipment[slot];

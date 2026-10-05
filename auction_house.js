@@ -35,7 +35,7 @@ window.GameAuctionHouse = ({api}) => {
     if(h) {
       const sheet=await api('/adventurers/'+encodeURIComponent(h.id));if(generation!==epoch)return;
       const equipped=new Set(Object.values(sheet.equipment || {}).filter(Boolean).map(i=>i.id));
-      inventory=[...(sheet.inventory || []).filter(i=>(i.weapon_type || i.item_type==='gear') && !equipped.has(i.id)).map(i=>({...i,item_type:i.weapon_type?'weapon':'gear',key:'equipment:'+i.id,quantity:1})),
+      inventory=[...(sheet.inventory || []).filter(i=>(i.weapon_type || i.item_type==='gear') && !i.account_bound && !equipped.has(i.id)).map(i=>({...i,item_type:i.weapon_type?'weapon':'gear',key:'equipment:'+i.id,quantity:1})),
         ...(sheet.consumables || []).filter(i=>i.quantity>0).map(i=>({...i,item_type:'consumable',key:'item:'+i.slug}))];
       h.gold=sheet.gold;
     }

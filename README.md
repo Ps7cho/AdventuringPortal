@@ -10,6 +10,28 @@ and `app/icon_manifest.json`. Startup applies the migration to existing database
 
 For this local setup, see [LOCAL-SETUP.md](LOCAL-SETUP.md).
 
+**Iron: Ten Rats** is an Iron quest with ten enemies in one encounter. On wider
+screens, the battlefield glance uses larger cards and a wrapping grid.
+
+**Alpha Wolf** is the alpha finale, scheduled nightly at 8 PM America/Denver.
+The shared boss starts at 10,000,000 HP with a ten-minute deadline. Gather a party
+through the usual quest lobby and readiness flow. The Alpha Wolf tab shows global
+health, participating parties, the timer, and account reward claims. Every party
+has independent enemy attacks and statuses while damage reduces the shared pool.
+The developer-only **Delete adventurers on failure** switch in the Alpha Wolf tab
+defaults off and persists on the server. Off: deadlines retain adventurers and
+release parties, and victories continue nightly testing. On: failure permanently
+deletes all adventurers, inventories, and progression while keeping accounts;
+victory stores beta and stops future events. Changing the switch affects an active
+event too. Turning it off after beta resumes nightly testing. Contributing accounts earn one five-piece epic Wolf Sovereign set; the
+server rejects auctioning its account-bound pieces.
+
+Deploy backend migrations `041_alpha_finale` and `042_world_boss_testing` and the updated frontend together.
+The event settings and next start are stored in `world_boss_state`. A background
+worker settles deadlines without connected players. An event that already opened
+will settle after restart; a scheduled window that never opened during downtime
+is skipped. No live event or wipe is launched by local verification scripts.
+
 Affliction abilities use the same encounter action endpoint as other abilities.
 Send only the equipped ability ID and legal target IDs; the server owns all stack
 interactions and damage. Authenticated `/api/afflictions` and

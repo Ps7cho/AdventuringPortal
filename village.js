@@ -25,6 +25,11 @@ function applyVillage() {
   const data=pendingVillage;pendingVillage=null;
   if(!data || data.account.id!==signedInUser?.id) return;
   signedInUser=data.account;
+  if(encounter?.world_boss&&!data.adventurers.some(hero=>encounter.participants.some(actor=>actor.id===hero.id))){
+    live.close();localStorage.removeItem(savedKey());encounter=null;
+    $('combat').hidden=true;$('no-encounter').hidden=false;$('world-boss-combat').hidden=true;
+    history.replaceState(null,'','./index.html');worldBossPanel.refresh();villageTabs.select('world-boss');
+  }
   villageParties=data.parties || [];friendFeedError=false;
   drawBulletin(data.contracts || []);
   if(JSON.stringify(villageHeroes)!==JSON.stringify(data.adventurers)) {
@@ -89,6 +94,7 @@ function render(data, pushed=false) {
   if(!finishedGauntlet(data)) history.replaceState(null, '', './index.html?encounter=' + data.id);
   $('combat').hidden = false; $('no-encounter').hidden=true; if(!pushed) villageTabs.select('encounter');
   $('status').textContent = `Turn ${data.turn} - ${data.state.replaceAll('_', ' ')}`;
+  $('world-boss-combat').hidden=!data.world_boss;if(data.world_boss){$('world-boss-combat-health').textContent=`Alpha Wolf: ${data.world_boss.health.toLocaleString()} / ${data.world_boss.max_health.toLocaleString()} shared HP`;const bar=$('world-boss-combat-bar');bar.max=data.world_boss.max_health;bar.value=data.world_boss.health;$('world-boss-combat').dataset.deadline=data.world_boss.ends_at;$('world-boss-combat').dataset.status=data.world_boss.status;tickWorldBossTimer();}
   $('encounter-id').textContent = data.id;
   $('quest-progress').textContent = `Encounter ${data.quest.encounter_number} of ${data.quest.encounter_count} - ${data.quest.status.replaceAll('_', ' ')}`;
   $('continue').hidden = !data.quest.can_continue || (data.quest.requires_choice && !data.quest.camp_rest);
@@ -136,6 +142,7 @@ function render(data, pushed=false) {
     $('return-village').textContent=data.gauntlet.status==='awaiting_continue'?'End Gauntlet Run':'Return to Village';
     $('camp-description').textContent='Nonlethal trial: damage and cooldowns persist within this run. Pre-run character state is preserved. No rewards or consumables.';
   }
+  if(data.world_boss){$('continue').hidden=$('push-on').hidden=true;$('return-village').hidden=true;}
   const previousEnemyTarget=$('target').value;
   $('target').replaceChildren(new Option('Automatic target',''),...data.enemies.filter(e=>e.hp>0).map(e=>new Option(e.name,e.id)));
   if([...$('target').options].some(o=>o.value===previousEnemyTarget)) $('target').value=previousEnemyTarget;
@@ -154,7 +161,7 @@ function render(data, pushed=false) {
   if(window.GameIcons)$('combatants').querySelectorAll('.combatant.enemy').forEach((card,index)=>card.prepend(GameIcons.element(data.enemies[index].icon_path)));
   $('battlefield-glance').replaceChildren(...data.enemies.filter(enemy=>enemy.hp>0).map(enemy=>{
     const card=document.createElement('div'),name=document.createElement('strong'),health=document.createElement('span'),intent=document.createElement('small');
-    card.className='battlefield-glance-card';name.textContent=enemy.name;health.textContent=`${enemy.hp}/${enemy.max_hp} HP`;
+    card.className='battlefield-glance-card';name.textContent=enemy.name;health.textContent=`${enemy.hp.toLocaleString()}/${enemy.max_hp.toLocaleString()} HP`;
     intent.textContent=enemy.next_move?`Next: ${enemy.next_move.name}`:'Next move unknown';
     if(window.GameIcons)card.append(GameIcons.element(enemy.icon_path));card.append(name,health,intent);return card;
   }));
@@ -228,6 +235,7 @@ function encounterChoices(actor) {
       .map(i=>({...i,kind:'item',branch:'items',target_type:'ally'}))];
 }
 function actionUnavailable(actor, choice) {
+  if(encounter?.world_boss&&(encounter.world_boss.status!=='active'||Date.parse(encounter.world_boss.ends_at)<=Date.now()))return 'The Alpha Wolf event has ended.';
   if(!actor || actor.hp<=0 || actor.acted || encounter?.state!=='player_turn') return 'Waiting for an available adventurer.';
   if(!choice) return 'Choose an action.';
   if(choice.kind==='item') return '';
@@ -348,6 +356,13 @@ function renderActions() {
 $('action-back').onclick=()=>{if(selectedAction) selectedAction=null;else actionBranch=null;renderActions();
   (actionBranch ? $('action-buttons').querySelector('button') || $('action-back') : $('action-categories').querySelector('button'))?.focus({preventScroll:true});};
 $('combat-weapon').onchange=updateActionAvailability;
+function tickWorldBossTimer(){
+  if(!encounter?.world_boss||!signedInUser)return;
+  const seconds=Math.max(0,Math.ceil((Date.parse(encounter.world_boss.ends_at)-Date.now())/1000));
+  $('world-boss-combat-timer').textContent=encounter.world_boss.status==='defeated'?'Defeated · Beta unlocked':`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')} remaining`;
+  if(seconds===0)updateActionAvailability();
+}
+setInterval(tickWorldBossTimer,1000);
 $('action-use').onclick=()=>run(async()=>{
   const actor=actionActor(), choice=selectedAction;
   if(actionUnavailable(actor,choice)) return;
@@ -600,6 +615,7 @@ const gauntletPanel=GameGauntlet({api,onEncounter:data=>render(data)});
 const gauntletSummary=document.createElement('button');gauntletSummary.type='button';gauntletSummary.textContent='Gauntlet Run Summary';gauntletSummary.hidden=true;
 gauntletSummary.onclick=()=>{villageTabs.select('gauntlet');gauntletPanel.showRun(encounter.gauntlet.id);};
 $('return-village').after(gauntletSummary);
+const worldBossPanel=GameWorldBoss({api,isSignedIn:()=>Boolean(signedInUser),hero:()=>villageHeroes.find(h=>h.id===window.GameSelectedCharacter.id&&h.is_alive),onReview:slug=>{const template=villageQuestTemplates.find(t=>t.slug===slug);if(template)openQuestLobby(template);},onClaimed:()=>loadAccount(signedInUser)});
 const villageTabs=GameUI.tabs(villageHost,[
   {key:'home',label:'Home',nodes:[homePanel]},
   {key:'journeys',label:'Quests',nodes:[questContent]},
@@ -609,12 +625,14 @@ const villageTabs=GameUI.tabs(villageHost,[
   {key:'shop',label:'Village Shops',nodes:[villageShop]},
   {key:'worldsmith',label:'Worldsmith',nodes:[developerPanel]},
   {key:'gauntlet',label:'Gauntlet',nodes:[gauntletPanel]},
+  {key:'world-boss',label:'Alpha Wolf',nodes:[worldBossPanel]},
   {key:'encounter',label:'Encounter',nodes:[noEncounter,$('combat'),$('quest-results'),$('log').closest('section')]},
   {key:'bestiary',label:'Bestiary & Testing',nodes:[bestiary]}
 ],undefined,{mobileNav:{label:'Village navigation',primary:['home','journeys','character','gauntlet'],icons:{home:'home',journeys:'map',character:'person',gauntlet:'shield'}}});
 new MutationObserver(()=>{if($('tab-auction-house').getAttribute('aria-selected')==='true')auctionPanel.refresh();}).observe($('tab-auction-house'),{attributes:true,attributeFilter:['aria-selected']});
 new MutationObserver(()=>{if($('tab-shop')?.getAttribute('aria-selected')==='true')refreshShop();}).observe($('tab-shop'),{attributes:true,attributeFilter:['aria-selected']});
 new MutationObserver(()=>{if($('tab-worldsmith')?.getAttribute('aria-selected')==='true')ensureWorldsmith().then(panel=>{if($('tab-worldsmith').getAttribute('aria-selected')==='true')panel.refresh();}).catch(()=>{});}).observe($('tab-worldsmith'),{attributes:true,attributeFilter:['aria-selected']});
+new MutationObserver(()=>{if($('tab-world-boss')?.getAttribute('aria-selected')==='true')worldBossPanel.refresh();}).observe($('tab-world-boss'),{attributes:true,attributeFilter:['aria-selected']});
 new MutationObserver(()=>{if($('tab-gauntlet')?.getAttribute('aria-selected')==='true')gauntletPanel.refresh();}).observe($('tab-gauntlet'),{attributes:true,attributeFilter:['aria-selected']});
 $('public-home').append(homePanel);
 GameUI.hint($('wait'),'Spend your action waiting. Enemies still act, and turn cooldowns advance.');

@@ -52,7 +52,7 @@ function renderJourneyChoices(host, templates, depart, selectedKind = null, sele
       const distance=rank=>selectedRankIndex===null || rank==null ? 0 : Math.abs(rank-selectedRankIndex);
       return distance(a.rank_index)-distance(b.rank_index)
         || (b.rank_index??0)-(a.rank_index??0)
-        || (kind==='raid' ? (a.journey.raid.cadence==='daily'?0:1)-(b.journey.raid.cadence==='daily'?0:1) : 0)
+        || (kind==='raid' ? (a.journey.raid?.cadence==='daily'?0:1)-(b.journey.raid?.cadence==='daily'?0:1) : 0)
         || a.name.localeCompare(b.name);
     });
     if(!routes.length)continue;
@@ -69,6 +69,7 @@ function renderJourneyChoices(host, templates, depart, selectedKind = null, sele
       const rank=(rules.required_rank||'iron').toLowerCase(),banner=questRankBanner(rank,'',template.rank_index);
       card.append(banner,make('h3',template.name),make('p',template.region,'muted'));
       if(raid)card.append(make('small',raid.cadence.toUpperCase()+' RAID','quest-raid-cadence'));
+      if(rules.world_boss)card.append(make('small','SERVER-WIDE ALPHA FINALE · SUNDAY 8 PM','quest-raid-cadence'));
       if(raid?.rotation) card.append(raidCountdown(raid.rotation));
       if(raid?.rotation) card.append(raidCompletionBadge(template.name, raid.rotation));
       const button=make('button','Review quest & gather party');

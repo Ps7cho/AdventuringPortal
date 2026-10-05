@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Mosswood Village</title>
-  <link rel="stylesheet" href="./ui.css?v=encounter-icons2-quest-results1">
+  <link rel="stylesheet" href="./ui.css?v=alpha-finale1-quest-results1">
 </head>
 <body class="game-menu">
 <main>
@@ -38,6 +38,7 @@
     <p id="quest-progress"></p>
     <div class="encounter-decisions"><button id="continue" hidden>Continue Journey</button><button id="push-on" hidden>Press On</button><button id="return-village" hidden>Return to Village</button></div>
     <div id="player-glance" class="player-glance" aria-label="Your adventurer's health"></div>
+    <div id="world-boss-combat" class="world-boss-combat" hidden><strong id="world-boss-combat-health"></strong><progress id="world-boss-combat-bar" aria-label="Shared Alpha Wolf health"></progress><span id="world-boss-combat-timer"></span></div>
     <div id="battlefield-glance" class="battlefield-glance" aria-label="Enemies at a glance"></div>
     <div id="encounter-options" class="encounter-options">
       <div class="row"><label>Acting adventurer <select id="actor"></select></label><button id="wait" class="quiet-action">Wait</button></div>
@@ -68,12 +69,13 @@
 <script defer src="./ui.js?v=quest-swipes1"></script>
 <script defer src="./news.js?v=equipment1"></script>
 <script defer src="./lobby.js?v=mobile-nav1"></script>
-<script defer src="./journey_ui.js?v=encounter-icons2"></script>
+<script defer src="./journey_ui.js?v=nightly-testing1"></script>
 <script defer src="./config.js?v=20260913-village1"></script>
 <script defer src="./api.js?v=startup-equipment1"></script>
-<script defer src="./auction_house.js?v=weapon-effects1"></script>
+<script defer src="./auction_house.js?v=alpha-finale1"></script>
 <script defer src="./gauntlet.js?v=decision-menus1"></script>
 <script defer src="./quest_results.js?v=quest-results1"></script>
-<script defer src="./village.js?v=live-ability-icons3"></script>
+<script defer src="./world_boss.js?v=nightly-testing1"></script>
+<script defer src="./village.js?v=alpha-finale1"></script>
 </body>
 </html>
